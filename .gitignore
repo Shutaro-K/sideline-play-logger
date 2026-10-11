@@ -1,2 +1,5 @@
 node_modules/
 test-results/
+
+# Real sign tables and game exports must never be committed.
+*.csv

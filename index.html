@@ -103,6 +103,10 @@
     .table-mode .toast{bottom:22px}
     .storage-notice{position:fixed;z-index:11;top:65px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:10px 14px;border:1px solid #e6a14a;border-radius:8px;background:#fff5e6;color:#704313;font-size:12px;box-shadow:0 3px 16px #0012}
     .storage-notice button{margin-left:8px}
+    button.demo-pill{background:transparent}
+    .lookup > div{min-width:0;flex:1;overflow-wrap:anywhere}
+    .cwm-branch{margin-left:auto;flex:none;border:1px solid #c8dff9;background:#eff6ff;color:#165eac;border-radius:7px;padding:7px 10px;font-size:12px;font-weight:700}
+    .cwm-branch.active{outline:2px solid var(--blue);outline-offset:2px}
     button:disabled{cursor:wait;opacity:.6}
     @media (max-width:1020px) {
       .entry-stage{grid-template-columns:minmax(0,1fr) minmax(275px,31vw);gap:12px;padding:12px}
@@ -111,7 +115,7 @@
       .field{height:87px;padding:11px 13px}
       .field-value{font-size:29px}
       h1{font-size:18px}
-      .demo-pill{display:none}
+      .demo-pill:not(button){display:none}
       .topbar{padding:0 14px}
       .log-toolbar{padding:0 12px}
     }
@@ -153,7 +157,7 @@
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand"><div class="mark" aria-hidden="true">S</div><div><div class="brand-name">SIDELINE LOG</div><div class="brand-sub">PLAY TRACKER / UI PROTOTYPE</div></div></div>
-    <div class="top-actions"><span class="demo-pill">DEMO · CSV未接続</span><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn" disabled>↓ CSV出力</button></div>
+    <div class="top-actions"><button type="button" class="demo-pill" id="importBtn" disabled>CSV読込 / 未読込</button><input type="file" id="signCsvInput" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn" disabled>↓ CSV出力</button></div>
   </header>
   <main class="entry-stage">
     <section class="panel form-panel" aria-label="プレー入力">
@@ -164,7 +168,7 @@
         <button type="button" class="field" data-field="strSide" aria-label="Strength Side入力"><div class="field-top"><span class="field-label">STR SIDE</span><span class="field-hint">L / R</span></div><span class="field-value empty" id="value-strSide">—</span></button>
         <button type="button" class="field" data-field="sign" aria-label="Sign入力"><div class="field-top"><span class="field-label">SIGN</span><span class="field-hint">下5桁</span></div><span class="field-value empty" id="value-sign">—</span></button>
       </div>
-      <div class="lookup" aria-live="polite"><span class="lookup-icon">↗</span><div><div class="lookup-label">SIGN LOOKUP / サイン照合</div><div class="lookup-result" id="lookupResult">Signを入力すると、Formation・Playを表示<span class="lookup-note">（架空の照合データ）</span></div></div></div>
+      <div class="lookup" aria-live="polite"><span class="lookup-icon">↗</span><div><div class="lookup-label">SIGN LOOKUP / サイン照合</div><div class="lookup-result" id="lookupResult">Sign対応CSVが未読込です</div></div><button type="button" class="cwm-branch" id="cwmBranchInput" hidden>枝番 —</button></div>
       <div class="remark-head"><label for="remark">REMARK</label><span>必要なときだけ文字入力（キーボード）</span></div>
       <textarea id="remark" placeholder="例）Blitz、守備の反応、気づいたこと…" spellcheck="false"></textarea>
       <div class="form-foot"><span class="foot-info" id="formInfo">すべて空欄でも記録できます ／ 記録後は全項目クリア</span><button type="button" class="cancel-edit" id="cancelEdit" hidden>編集をキャンセル</button></div>
@@ -190,53 +194,72 @@
 <div role="status" class="toast" id="toast" aria-live="polite"></div>
 <div class="storage-notice" id="storageNotice" role="status" aria-live="polite" hidden><span id="storageMessage"></span><button type="button" id="retryStorage" hidden>復元を再試行</button></div>
 <script src="storage.js"></script>
+<script src="sign-lookup.js"></script>
 <script>
   'use strict';
-  // UI確認用：以下は架空データ。実際のサインCSV形式は未定。
-  const DEMO_LOOKUP = {
-    '12345': {formation:'TRIPS RIGHT',play:'INSIDE ZONE'},
-    '23456': {formation:'DOUBLES LEFT',play:'MESH'},
-    '34567': {formation:'BUNCH RIGHT',play:'FLOOD'},
-    '52647': {formation:'STACK RIGHT',play:'SLANT / FLAT'}
-  };
   const fields=['down','distance','strSide','sign'];
-  const blank=()=>({down:'',distance:'',strSide:'',sign:'',remark:''});
+  const blank=()=>({down:'',distance:'',strSide:'',sign:'',branch:'',remark:''});
   let current=blank();let active='down';let editingId=null;let tableMode=false;
-  let logs=[];let ready=false;let busy=true;
+  let logs=[];let ready=false;let busy=true;let signMapping=null;let recordSaveFailed=false;
   const $=id=>document.getElementById(id);
-  const lookup=sign=>DEMO_LOOKUP[sign]||null;
+  function storedDetails(record){return {formation:record.formation,play:record.play,resolvedSign:record.resolvedSign||'',parentSign:record.parentSign||'',cwmBranch:record.cwmBranch||'',lookupStatus:record.lookupStatus||'legacy'};}
+  function originalSelection(){const row=logs.find(x=>x.id===editingId);return row&&row.sign===current.sign&&(row.branch||'')===current.branch?row:null;}
+  function selectionDetails(){const original=originalSelection();return original?storedDetails(original):SignLookup.resolve(signMapping,current.sign,current.branch);}
+  function cwmParent(){return signMapping?.bySign.get(current.sign)?.record_type==='cwm_parent'||(originalSelection()?.parentSign===current.sign&&Boolean(current.sign));}
+  function renderMappingState(){$('importBtn').textContent=signMapping?'CSV読込 / '+signMapping.rows.length+'件':'CSV読込 / 未読込';}
   function storageNotice(message='',retry=false){$('storageMessage').textContent=message;$('storageNotice').hidden=!message;$('retryStorage').hidden=!retry;}
-  function setBusy(state){busy=state;for(const el of document.querySelectorAll('.entry-stage button,.entry-stage textarea,#exportBtn,#resetBtn'))el.disabled=busy||!ready;}
+  function setBusy(state){busy=state;for(const el of document.querySelectorAll('.entry-stage button,.entry-stage textarea,#exportBtn,#resetBtn,#importBtn,#signCsvInput'))el.disabled=busy||!ready;}
   async function restoreRecords(){
-    setBusy(true);$('retryStorage').disabled=true;storageNotice('記録を復元しています…');
-    try{logs=await PlayLogStore.load();ready=true;renderLogs();storageNotice();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});}
-    catch(error){console.error('Record restore failed',error);storageNotice('記録を復元できません。上書きを防ぐため記録操作を停止しています。別のタブを閉じるなどして再試行してください。',true);}
+    setBusy(true);$('retryStorage').disabled=true;storageNotice('記録・対応表を復元しています…');
+    try{logs=await PlayLogStore.load();const savedMapping=await PlayLogStore.loadMapping();signMapping=savedMapping?SignLookup.validateRows(savedMapping.rows):null;ready=true;renderMappingState();renderFields();renderLogs();storageNotice();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});}
+    catch(error){console.error('Record restore failed',error);storageNotice('記録・対応表を復元できません。上書きを防ぐため記録操作を停止しています。別のタブを閉じるなどして再試行してください。',true);}
     finally{setBusy(false);$('retryStorage').disabled=false;}
+  }
+  async function importSigns(file){
+    if(!file||!ready||busy)return;
+    setBusy(true);
+    try{
+      const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());
+      const validated=SignLookup.parse(text);
+      await PlayLogStore.saveMapping({rows:validated.rows,importedAt:new Date().toISOString()});
+      signMapping=validated;renderMappingState();renderFields();storageNotice(recordSaveFailed?'未保存：記録の入力を保持しています。Enterで再試行してください。':'');toast('Sign対応CSVを保存しました（'+validated.rows.length+'件）');
+    }catch(error){storageNotice('CSVを適用できません。既存の対応表は保持しています。 '+error.message+(recordSaveFailed?' 未保存の記録も残しています。Enterで再試行してください。':'' ));}
+    finally{$('signCsvInput').value='';setBusy(false);}
   }
   function nowTime(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
   function renderClock(){$('clock').textContent=nowTime();}
   function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1850);}
   function focusField(name){if(!fields.includes(name))return;active=name;renderFields();}
-  function renderFields(){fields.forEach(name=>{const el=document.querySelector('.field[data-field="'+name+'"]');el.classList.toggle('active',name===active);el.setAttribute('aria-pressed',String(name===active));const value=$('value-'+name);value.textContent=current[name]||'—';value.classList.toggle('empty',!current[name]);});$('remark').value=current.remark;const matched=lookup(current.sign), result=$('lookupResult');result.replaceChildren();if(!current.sign){result.append('Signを入力すると、Formation・Playを表示');const s=document.createElement('span');s.className='lookup-note';s.textContent='（架空の照合データ）';result.append(s);}else if(matched){result.textContent=matched.formation+'  /  '+matched.play;}else{result.textContent='該当なし（未照合）';result.style.color='#ae7232';}if(matched||!current.sign){result.style.color='';}}
+  function renderFields(){
+    fields.forEach(name=>{const el=document.querySelector('.field[data-field="'+name+'"]');el.classList.toggle('active',name===active);el.setAttribute('aria-pressed',String(name===active));const value=$('value-'+name);value.textContent=current[name]?(current[name]+(name==='sign'&&current.branch?' · '+current.branch:'')):'—';value.classList.toggle('empty',!current[name]);});
+    $('remark').value=current.remark;
+    const details=selectionDetails(),result=$('lookupResult');result.style.color='';
+    if(details.lookupStatus==='cwm_pending'){result.textContent='CWM / '+details.formation+' · 枝番未確定（テンキー1・2）';result.style.color='#ae7232';}
+    else if(details.formation||details.play){result.textContent=details.formation+'  /  '+details.play+(details.cwmBranch?'（枝番'+details.cwmBranch+'）':'')+(originalSelection()?'（保存済み）':'');}
+    else if(originalSelection()&&current.sign){result.textContent='保存済み：未照合（記録時の状態を保持）';}
+    else if(!signMapping){result.textContent='Sign対応CSVが未読込です（未照合のまま記録できます）';}
+    else if(!current.sign){result.textContent='Signを入力すると、Formation・Playを表示';}
+    else{result.textContent='該当なし（未照合のまま記録できます）';result.style.color='#ae7232';}
+    const branch=$('cwmBranchInput');branch.hidden=!cwmParent();branch.textContent='枝番 '+(current.branch||'—');branch.classList.toggle('active',active==='sign');branch.setAttribute('aria-label','CWM枝番入力。テンキーの1または2を押してください');
+  }
   function enterKey(key){
     if(key==='L'||key==='R'){current.strSide=key;active='strSide';renderFields();return;}
     if(!/^\d$/.test(key))return;
     if(active==='strSide'){toast('Str Sideは L / R で選択');return;}
     if(active==='down'){if(!/^[1-4]$/.test(key)){toast('Downは1〜4で入力');return;}current.down=key;}
     if(active==='distance'){if(current.distance.length>=3){toast('Distanceは3桁まで');return;}current.distance+=key;}
-    if(active==='sign'){if(current.sign.length>=5){toast('Signは下5桁を入力');return;}current.sign+=key;}
+    if(active==='sign'){if(current.sign.length>=5){if(cwmParent()){if(!['1','2'].includes(key)){toast('CWM枝番は1・2で入力');return;}current.branch=key;renderFields();return;}toast('Signは下5桁を入力');return;}current.branch='';current.sign+=key;}
     renderFields();
   }
   function moveTab(){const idx=fields.indexOf(active);focusField(fields[(idx+1)%fields.length]);}
-  function backspace(){if(active==='strSide')current.strSide='';else current[active]=current[active].slice(0,-1);renderFields();}
-  function clearForm(){current=blank();active='down';editingId=null;$('formTitle').textContent='プレーを記録';$('entryState').textContent='NEW PLAY';$('formInfo').textContent='すべて空欄でも記録できます ／ 記録後は全項目クリア';$('cancelEdit').hidden=true;renderFields();}
+  function backspace(){if(active==='sign'&&current.branch){current.branch='';renderFields();return;}if(active==='strSide')current.strSide='';else current[active]=current[active].slice(0,-1);renderFields();}
+  function clearForm(){if(recordSaveFailed)storageNotice();recordSaveFailed=false;current=blank();active='down';editingId=null;$('formTitle').textContent='プレーを記録';$('entryState').textContent='NEW PLAY';$('formInfo').textContent='すべて空欄でも記録できます ／ 記録後は全項目クリア';$('cancelEdit').hidden=true;renderFields();}
   async function saveRecord(){
     if(!ready||busy)return;
     current.remark=$('remark').value;
     const original=editingId===null?null:logs.find(x=>x.id===editingId);
     if(editingId!==null&&!original){storageNotice('編集対象が見つかりません。入力内容を確認してください。');return;}
-    const matched=lookup(current.sign)||{};
-    const details=original&&original.sign===current.sign?{formation:original.formation,play:original.play}:{formation:matched.formation||'',play:matched.play||''};
+    const details=selectionDetails();
     const createdAt=new Date();
     const record=original?{...original,...current,...details}:{...current,...details,time:createdAt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}),recordedAt:createdAt.toISOString()};
     setBusy(true);
@@ -245,7 +268,7 @@
       else{logs.push(await PlayLogStore.add(record));}
       storageNotice();clearForm();renderLogs();toast(original?'記録を更新しました（時刻は維持）':'プレーを保存しました');
       requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
-    }catch(error){console.error('Record save failed',error);storageNotice('未保存：保存できませんでした。入力内容は残しています。Enterで再試行してください。');}
+    }catch(error){recordSaveFailed=true;console.error('Record save failed',error);storageNotice('未保存：保存できませんでした。入力内容は残しています。Enterで再試行してください。');}
     finally{setBusy(false);}
   }
   async function resetRecords(){
@@ -259,22 +282,25 @@
   }
   function displayValue(s){return s||'—';}
   function makeCell(text,cls=''){const td=document.createElement('td');td.textContent=displayValue(text);td.className=cls+(text?'':' blank');return td;}
-  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,row.formation,row.play].join(' ').toLowerCase().includes(q);});
+  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,row.formation,row.play,row.resolvedSign,row.parentSign,row.cwmBranch,row.lookupStatus].join(' ').toLowerCase().includes(q);});
     for(const row of results){const tr=document.createElement('tr');tr.setAttribute('tabindex','0');tr.setAttribute('aria-label',row.time+'の記録を編集');tr.append(makeCell(row.time,'time'),makeCell(row.down),makeCell(row.distance),makeCell(row.strSide),makeCell(row.formation),makeCell(row.play),makeCell(row.remark,'remark'));tr.addEventListener('click',()=>editRecord(row.id));tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();editRecord(row.id);}});tbody.append(tr);}
     if(results.length===0){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='noresults';td.textContent='該当する記録がありません';tr.append(td);tbody.append(tr);}
     $('count').textContent=logs.length+' plays'+(q?' / '+results.length+' found':'');
   }
-  function editRecord(id){if(!ready||busy)return;const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
+  function editRecord(id){if(!ready||busy)return;const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,branch:row.branch||'',remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
   function setTableMode(state){tableMode=state;document.body.classList.toggle('table-mode',tableMode);$('toggleTable').textContent=tableMode?'← 入力に戻る':'⤢ 表を拡大';$('search').value='';renderLogs();}
   function csvEscape(s){const v=String(s??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
-  function exportCSV(){if(!ready||busy)return;const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark'],...logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark])];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('CSVを出力しました。端末への保存を確認してください');}
+  function exportCSV(){if(!ready||busy)return;const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark','Lookup Status','Resolved Sign','Parent Sign','CWM Branch'],...logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark,r.lookupStatus||'legacy',r.resolvedSign||'',r.parentSign||'',r.cwmBranch||''])];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('CSVを出力しました。端末への保存を確認してください');}
   for(const el of document.querySelectorAll('.field'))el.addEventListener('click',()=>focusField(el.dataset.field));
   for(const el of document.querySelectorAll('[data-key]'))el.addEventListener('click',()=>enterKey(el.dataset.key));
   $('tab').addEventListener('click',moveTab);$('backspace').addEventListener('click',backspace);$('enter').addEventListener('click',saveRecord);
   $('toggleTable').addEventListener('click',()=>setTableMode(!tableMode));$('cancelEdit').addEventListener('click',()=>{clearForm();toast('編集をキャンセルしました');});$('exportBtn').addEventListener('click',exportCSV);$('search').addEventListener('input',renderLogs);
   $('resetBtn').addEventListener('click',resetRecords);$('retryStorage').addEventListener('click',restoreRecords);
+  $('importBtn').addEventListener('click',()=>{if(ready&&!busy)$('signCsvInput').click();});
+  $('signCsvInput').addEventListener('change',()=>importSigns($('signCsvInput').files[0]));
+  $('cwmBranchInput').addEventListener('click',()=>focusField('sign'));
   $('remark').addEventListener('input',()=>{current.remark=$('remark').value});
-  document.addEventListener('keydown',e=>{if(!ready||busy)return;if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')&&!e.target.closest('#resetBtn,#exportBtn,#retryStorage,#toggleTable,#cancelEdit')){e.preventDefault();saveRecord();}});
+  document.addEventListener('keydown',e=>{if(!ready||busy)return;if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')&&!e.target.closest('#resetBtn,#exportBtn,#retryStorage,#toggleTable,#cancelEdit,#importBtn')){e.preventDefault();saveRecord();}});
   renderClock();setInterval(renderClock,1000);renderFields();renderLogs();restoreRecords();
 </script>
 </body>

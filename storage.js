@@ -9,10 +9,12 @@ window.PlayLogStore = (() => {
   function open() {
     if (connection) return connection;
     connection = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
+      const request = indexedDB.open(DB_NAME, 2);
       let blocked = false;
       request.onupgradeneeded = () => {
-        request.result.createObjectStore(STORE, {keyPath: 'id', autoIncrement: true});
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, {keyPath: 'id', autoIncrement: true});
+        if (!db.objectStoreNames.contains('signMappings')) db.createObjectStore('signMappings', {keyPath: 'id'});
       };
       request.onerror = () => reject(request.error);
       request.onblocked = () => {
@@ -30,17 +32,17 @@ window.PlayLogStore = (() => {
     return connection;
   }
 
-  async function run(mode, operation) {
+  async function run(mode, operation, storeName = STORE) {
     const db = await open();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE, mode);
+      const transaction = db.transaction(storeName, mode);
       let request;
       // A successful request can still be followed by an aborted transaction.
       // Only report success after the whole transaction commits.
       transaction.oncomplete = () => resolve(request.result);
       transaction.onabort = () => reject(transaction.error || new Error('保存処理が中断されました。'));
       try {
-        request = operation(transaction.objectStore(STORE));
+        request = operation(transaction.objectStore(storeName));
       } catch (error) {
         transaction.abort();
         reject(error);
@@ -53,6 +55,8 @@ window.PlayLogStore = (() => {
     load: () => run('readonly', store => store.getAll()),
     add: async record => ({...record, id: await run('readwrite', store => store.add(record))}),
     update: record => run('readwrite', store => store.put(record)),
-    clear: () => run('readwrite', store => store.clear())
+    clear: () => run('readwrite', store => store.clear()),
+    loadMapping: () => run('readonly', store => store.get('current'), 'signMappings'),
+    saveMapping: mapping => run('readwrite', store => store.put({...mapping, id: 'current'}), 'signMappings')
   };
 })();
