@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172c43">
+  <title>Sideline Play Logger — UI mockup</title>
+  <style>
+    :root { --navy:#182d44;--navy2:#263e56;--ink:#1b2e42;--muted:#698094;--line:#dce5ec;--soft:#f4f7fa;--blue:#1e69c4;--blueSoft:#eaf3ff;--orange:#e6a14a;--peek:clamp(193px,22.2dvh,235px); }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--soft);color:var(--ink);overflow:hidden;-webkit-tap-highlight-color:transparent}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer;touch-action:manipulation}
+    button:focus-visible,.field:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #67a8fa;outline-offset:2px}
+    .app{height:100dvh;display:flex;flex-direction:column;min-height:0}
+    .topbar{height:65px;min-height:65px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 25px;gap:18px}
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .mark{width:35px;height:35px;border:1px solid #527089;border-radius:8px;display:grid;place-items:center;color:#c5e1ff;font-weight:900;font-size:20px}
+    .brand-name{font-size:17px;font-weight:800;letter-spacing:.095em;white-space:nowrap}
+    .brand-sub{font-size:10px;color:#9eb4c9;letter-spacing:.15em;margin-top:3px}
+    .top-actions{display:flex;align-items:center;gap:12px}
+    .demo-pill{padding:7px 10px;border:1px solid #55718b;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#c8d9e8;white-space:nowrap}
+    .clock{font-size:16px;font-weight:700;letter-spacing:.035em;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .header-btn{background:#334f69;border:1px solid #5b728b;color:white;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:700;white-space:nowrap}
+    .header-btn:hover{background:#3c5d7c}
+    .entry-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,365px);gap:18px;padding:18px 24px 16px}
+    .panel{min-height:0;background:white;border:1px solid #e0e8ee;box-shadow:0 3px 20px rgba(39,66,91,.045);border-radius:14px}
+    .form-panel{padding:19px 22px;display:flex;flex-direction:column;overflow:auto}
+    .section-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+    h1,h2,p{margin:0}
+    h1{font-size:20px;letter-spacing:.015em}
+    .helper{font-size:12px;color:var(--muted);margin-top:5px}
+    .entry-status{font-size:11px;color:#2065b2;background:#ebf3ff;border-radius:7px;padding:8px 10px;white-space:nowrap;font-weight:700}
+    .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .field{height:104px;background:#fbfcfd;border:1.5px solid var(--line);border-radius:11px;text-align:left;padding:15px 16px;display:flex;flex-direction:column;justify-content:space-between;transition:box-shadow .1s,border-color .1s,background .1s}
+    .field.active{border-color:var(--blue);background:#f0f7ff;box-shadow:0 0 0 2px rgba(30,105,196,.08)}
+    .field-top{display:flex;align-items:center;justify-content:space-between}
+    .field-label{font-size:12px;font-weight:800;color:#5b7086;letter-spacing:.05em}
+    .field-hint{font-size:10px;color:#8ba0b2}
+    .field-value{font-size:35px;line-height:1;font-weight:750;color:#1c324a;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .field-value.empty{color:#c5d1db;font-weight:400}
+    .field[data-field="sign"] .field-value{font-size:32px;letter-spacing:.085em}
+    .lookup{margin-top:13px;padding:12px 14px;min-height:70px;background:#f7fafc;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;gap:13px}
+    .lookup-icon{background:#e2ebf2;color:#627d94;border-radius:8px;width:37px;height:37px;display:grid;place-items:center;font-size:20px;flex:none}
+    .lookup-label{font-size:10px;font-weight:800;color:#7b91a3;letter-spacing:.09em;margin-bottom:5px}
+    .lookup-result{font-size:15px;font-weight:730;line-height:1.4}
+    .lookup-note{font-size:10px;font-weight:500;color:#8799a8;margin-left:9px}
+    .remark-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:15px;margin-bottom:7px}
+    .remark-head label{font-weight:800;font-size:13px}
+    .remark-head span{font-size:11px;color:var(--muted)}
+    textarea{display:block;resize:none;width:100%;flex:1;min-height:68px;max-height:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px 13px;font-size:15px;line-height:1.55;color:var(--ink);background:#fff}
+    textarea::placeholder{color:#acbbc7}
+    .form-foot{display:flex;align-items:center;gap:10px;margin-top:13px;min-height:27px}
+    .foot-info{font-size:11px;color:#7b90a3}
+    .cancel-edit{margin-left:auto;border:1px solid #d8e3ec;color:#425f78;background:white;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700}
+    .keypad-panel{padding:18px;display:flex;flex-direction:column;min-height:0}
+    .keypad-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+    .keypad-title{font-size:13px;font-weight:850;letter-spacing:.04em}
+    .keypad-help{font-size:10px;color:#8095a6}
+    .keypad-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(48px,1fr));gap:9px;flex:1;min-height:0}
+    .key{border:1px solid #d9e3eb;background:#f8fafc;border-radius:11px;color:#183149;font-size:30px;line-height:1;font-weight:600;min-height:48px}
+    .key:active{background:#dbeafe;transform:translateY(1px)}
+    .key.side{font-size:22px;color:#1466ba;background:#eff6ff;border-color:#c8dff9;font-weight:820}
+    .commands{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+    .cmd{height:47px;border-radius:10px;border:1px solid #d6e1e8;background:#e9eff4;font-size:17px;font-weight:800;color:#344c63}
+    .cmd span{font-size:11px;font-weight:600;color:#6c8296;margin-left:7px}
+    .enter{margin-top:10px;height:57px;min-height:57px;border-radius:10px;border:0;background:var(--blue);color:white;font-size:20px;font-weight:850;letter-spacing:.06em}
+    .enter:active{background:#17549c}
+    .enter-hint{text-align:center;font-size:10px;color:#8397a8;margin-top:8px}
+    .log-zone{height:var(--peek);min-height:0;background:white;box-shadow:0 -5px 19px rgba(39,66,91,.085);border-top:3px solid #d08d3d;display:flex;flex-direction:column;z-index:2}
+    .log-toolbar{height:46px;min-height:46px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 24px;background:#fff}
+    .log-title{display:flex;align-items:center;gap:11px;min-width:0}
+    .accent-line{background:#df9641;height:16px;width:4px;border-radius:3px}
+    .log-title b{font-size:13px;letter-spacing:.07em}
+    .log-title small{font-size:11px;color:#8296a7}
+    .log-actions{display:flex;align-items:center;gap:11px}
+    .count{font-size:11px;color:#7690a5;font-weight:700;white-space:nowrap}
+    .expand{background:#eaf3ff;color:#165eac;border:1px solid #cddff3;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;white-space:nowrap}
+    .table-search{height:34px;width:245px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;padding:0 11px;font-size:12px;display:none}
+    .table-wrap{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-color:#b8c8d7 #f7f9fb}
+    table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:790px}
+    col.time{width:138px} col.down{width:78px} col.dist{width:78px} col.sidecol{width:86px} col.formation{width:190px} col.play{width:245px} col.remark{width:auto}
+    thead th{position:sticky;top:0;z-index:1;background:#edf2f6;border-bottom:1px solid #dae4ec;border-right:1px solid #e0e7ed;height:34px;padding:7px 14px;text-align:left;font-size:10px;letter-spacing:.07em;color:#70869b;text-transform:uppercase;white-space:nowrap}
+    tbody td{height:47px;max-height:47px;border-bottom:1px solid #e8edf1;border-right:1px solid #f0f3f6;padding:10px 14px;font-size:13px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+    tbody tr{background:white;cursor:pointer}
+    tbody tr:nth-child(even){background:#fafcfe}
+    tbody tr:hover{background:#f0f7ff}
+    td.time{font-variant-numeric:tabular-nums;font-weight:750;color:#274665}
+    td.blank{color:#a0b0bf}
+    td.remark{color:#586f82}
+    .noresults{padding:20px;color:#8195a7;text-align:center;font-size:13px}
+    .table-mode .entry-stage{display:none}
+    .table-mode .log-zone{height:auto;flex:1;border-top-width:0}
+    .table-mode .log-toolbar{height:65px;min-height:65px;padding:0 28px}
+    .table-mode .log-title b{font-size:17px}
+    .table-mode .table-search{display:block}
+    .table-mode thead th{height:43px;font-size:12px}
+    .table-mode tbody td{height:58px;max-height:58px;font-size:14px}
+    .table-mode .expand{padding:11px 18px}
+    .toast{position:fixed;z-index:10;bottom:calc(var(--peek) + 16px);left:50%;transform:translateX(-50%) translateY(9px);background:#243b51;color:white;padding:9px 18px;border-radius:9px;box-shadow:0 8px 30px #0012;font-size:12px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .14s,transform .14s;white-space:nowrap}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .table-mode .toast{bottom:22px}
+    @media (max-width:1020px) {
+      .entry-stage{grid-template-columns:minmax(0,1fr) minmax(275px,31vw);gap:12px;padding:12px}
+      .form-panel{padding:14px}
+      .keypad-panel{padding:12px}
+      .field{height:87px;padding:11px 13px}
+      .field-value{font-size:29px}
+      h1{font-size:18px}
+      .demo-pill{display:none}
+      .topbar{padding:0 14px}
+      .log-toolbar{padding:0 12px}
+    }
+    @media(max-height:800px){
+      .topbar{height:54px;min-height:54px}
+      .entry-stage{padding:10px 16px;gap:12px}
+      .form-panel{padding:12px 16px}
+      .section-top{margin-bottom:8px}
+      .field-grid{gap:8px}
+      .field{height:79px;padding:9px 12px}
+      .field-value{font-size:29px}
+      .lookup{margin-top:8px;min-height:55px;padding:8px}
+      .remark-head{margin-top:8px;margin-bottom:5px}
+      textarea{min-height:45px}
+      .keypad-panel{padding:11px 14px}
+      .keypad-head{margin-bottom:8px}
+      .keypad-grid{gap:6px;grid-template-rows:repeat(4,minmax(35px,1fr))}
+      .key{min-height:35px;font-size:25px}
+      .commands{margin-top:6px;gap:6px}
+      .cmd{height:37px}
+      .enter{height:43px;min-height:43px;margin-top:6px}
+      .enter-hint{margin-top:5px}
+      .form-foot{margin-top:5px}
+    }
+    @media(max-width:650px){
+      body{overflow:auto}
+      .topbar{min-height:56px}
+      .brand-sub,.clock,.header-btn{display:none}
+      .entry-stage{grid-template-columns:minmax(0,1fr);overflow:auto}
+      .panel{min-height:385px}
+      .keypad-panel{min-height:470px}
+      .log-zone{height:215px;min-height:215px}
+      .table-mode .log-zone{min-height:0}
+      .table-search{width:140px!important}
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand"><div class="mark" aria-hidden="true">S</div><div><div class="brand-name">SIDELINE LOG</div><div class="brand-sub">PLAY TRACKER / UI PROTOTYPE</div></div></div>
+    <div class="top-actions"><span class="demo-pill">DEMO · CSV未接続</span><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn">↓ CSV出力</button></div>
+  </header>
+  <main class="entry-stage">
+    <section class="panel form-panel" aria-label="プレー入力">
+      <div class="section-top"><div><h1 id="formTitle">プレーを記録</h1><p class="helper">入力欄を選ぶ → テンキーで入力 → Enterで記録</p></div><span class="entry-status" id="entryState">NEW PLAY</span></div>
+      <div class="field-grid" id="fieldGrid">
+        <button type="button" class="field active" data-field="down" aria-label="Down入力"><div class="field-top"><span class="field-label">DOWN</span><span class="field-hint">1〜4</span></div><span class="field-value empty" id="value-down">—</span></button>
+        <button type="button" class="field" data-field="distance" aria-label="Distance入力"><div class="field-top"><span class="field-label">DISTANCE</span><span class="field-hint">yd</span></div><span class="field-value empty" id="value-distance">—</span></button>
+        <button type="button" class="field" data-field="strSide" aria-label="Strength Side入力"><div class="field-top"><span class="field-label">STR SIDE</span><span class="field-hint">L / R</span></div><span class="field-value empty" id="value-strSide">—</span></button>
+        <button type="button" class="field" data-field="sign" aria-label="Sign入力"><div class="field-top"><span class="field-label">SIGN</span><span class="field-hint">下5桁</span></div><span class="field-value empty" id="value-sign">—</span></button>
+      </div>
+      <div class="lookup" aria-live="polite"><span class="lookup-icon">↗</span><div><div class="lookup-label">SIGN LOOKUP / サイン照合</div><div class="lookup-result" id="lookupResult">Signを入力すると、Formation・Playを表示<span class="lookup-note">（架空の照合データ）</span></div></div></div>
+      <div class="remark-head"><label for="remark">REMARK</label><span>必要なときだけ文字入力（キーボード）</span></div>
+      <textarea id="remark" placeholder="例）Blitz、守備の反応、気づいたこと…" spellcheck="false"></textarea>
+      <div class="form-foot"><span class="foot-info" id="formInfo">すべて空欄でも記録できます ／ 記録後は全項目クリア</span><button type="button" class="cancel-edit" id="cancelEdit" hidden>編集をキャンセル</button></div>
+    </section>
+    <section class="panel keypad-panel" aria-label="専用テンキー">
+      <div class="keypad-head"><div class="keypad-title">KEYPAD <span style="color:#93a4b2;font-weight:500">/ 専用テンキー</span></div><span class="keypad-help">標準キーボード不要</span></div>
+      <div class="keypad-grid" id="keypad">
+        <button type="button" class="key" data-key="7">7</button><button type="button" class="key" data-key="8">8</button><button type="button" class="key" data-key="9">9</button>
+        <button type="button" class="key" data-key="4">4</button><button type="button" class="key" data-key="5">5</button><button type="button" class="key" data-key="6">6</button>
+        <button type="button" class="key" data-key="1">1</button><button type="button" class="key" data-key="2">2</button><button type="button" class="key" data-key="3">3</button>
+        <button type="button" class="key side" data-key="L">L</button><button type="button" class="key" data-key="0">0</button><button type="button" class="key side" data-key="R">R</button>
+      </div>
+      <div class="commands"><button type="button" class="cmd" id="backspace">⌫ <span>削除</span></button><button type="button" class="cmd" id="tab">Tab <span>次へ →</span></button></div>
+      <button type="button" class="enter" id="enter">Enter　·　記録する</button>
+      <div class="enter-hint">空欄のままEnterもOK</div>
+    </section>
+  </main>
+  <section class="log-zone" id="logZone" aria-label="プレー記録一覧">
+    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
+    <div class="table-wrap" id="tableWrap"><table aria-label="プレー記録"><colgroup><col class="time"><col class="down"><col class="dist"><col class="sidecol"><col class="formation"><col class="play"><col class="remark"></colgroup><thead><tr><th>TIME</th><th>DOWN</th><th>DIST</th><th>STR SIDE</th><th>FORMATION</th><th>PLAY</th><th>REMARK</th></tr></thead><tbody id="logBody"></tbody></table></div>
+  </section>
+</div>
+<div role="status" class="toast" id="toast" aria-live="polite"></div>
+<script>
+  'use strict';
+  // UI確認用：以下は架空データ。実際のサインCSV形式は未定。
+  const DEMO_LOOKUP = {
+    '12345': {formation:'TRIPS RIGHT',play:'INSIDE ZONE'},
+    '23456': {formation:'DOUBLES LEFT',play:'MESH'},
+    '34567': {formation:'BUNCH RIGHT',play:'FLOOD'},
+    '52647': {formation:'STACK RIGHT',play:'SLANT / FLAT'}
+  };
+  const SAMPLE_LOGS = [
+    {id:'demo-1',time:'13:14:25',down:'1',distance:'10',strSide:'R',sign:'12345',remark:'',sample:true},
+    {id:'demo-2',time:'13:16:07',down:'2',distance:'7',strSide:'L',sign:'23456',remark:'Blitz',sample:true},
+    {id:'demo-3',time:'13:17:00',down:'',distance:'',strSide:'',sign:'',remark:'',sample:true},
+    {id:'demo-4',time:'13:18:12',down:'3',distance:'4',strSide:'R',sign:'34567',remark:'',sample:true}
+  ];
+  const fields=['down','distance','strSide','sign'];
+  const blank=()=>({down:'',distance:'',strSide:'',sign:'',remark:''});
+  let current=blank();let active='down';let editingId=null;let tableMode=false;
+  let logs=SAMPLE_LOGS.map(x=>({...x}));
+  const $=id=>document.getElementById(id);
+  const lookup=sign=>DEMO_LOOKUP[sign]||null;
+  function nowTime(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
+  function renderClock(){$('clock').textContent=nowTime();}
+  function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1850);}
+  function focusField(name){if(!fields.includes(name))return;active=name;renderFields();}
+  function renderFields(){fields.forEach(name=>{const el=document.querySelector('.field[data-field="'+name+'"]');el.classList.toggle('active',name===active);el.setAttribute('aria-pressed',String(name===active));const value=$('value-'+name);value.textContent=current[name]||'—';value.classList.toggle('empty',!current[name]);});$('remark').value=current.remark;const matched=lookup(current.sign), result=$('lookupResult');result.replaceChildren();if(!current.sign){result.append('Signを入力すると、Formation・Playを表示');const s=document.createElement('span');s.className='lookup-note';s.textContent='（架空の照合データ）';result.append(s);}else if(matched){result.textContent=matched.formation+'  /  '+matched.play;}else{result.textContent='該当なし（未照合）';result.style.color='#ae7232';}if(matched||!current.sign){result.style.color='';}}
+  function enterKey(key){
+    if(key==='L'||key==='R'){current.strSide=key;active='strSide';renderFields();return;}
+    if(!/^\d$/.test(key))return;
+    if(active==='strSide'){toast('Str Sideは L / R で選択');return;}
+    if(active==='down'){if(!/^[1-4]$/.test(key)){toast('Downは1〜4で入力');return;}current.down=key;}
+    if(active==='distance'){if(current.distance.length>=3){toast('Distanceは3桁まで');return;}current.distance+=key;}
+    if(active==='sign'){if(current.sign.length>=5){toast('Signは下5桁を入力');return;}current.sign+=key;}
+    renderFields();
+  }
+  function moveTab(){const idx=fields.indexOf(active);focusField(fields[(idx+1)%fields.length]);}
+  function backspace(){if(active==='strSide')current.strSide='';else current[active]=current[active].slice(0,-1);renderFields();}
+  function clearForm(){current=blank();active='down';editingId=null;$('formTitle').textContent='プレーを記録';$('entryState').textContent='NEW PLAY';$('formInfo').textContent='すべて空欄でも記録できます ／ 記録後は全項目クリア';$('cancelEdit').hidden=true;renderFields();}
+  function saveRecord(){current.remark=$('remark').value;
+    if(editingId){const record=logs.find(x=>x.id===editingId);if(!record){clearForm();return;}Object.assign(record,current);toast('記録を更新しました（時刻は維持）');}
+    else{logs.push({id:'log-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),time:nowTime(),...current});toast('プレーを記録しました');}
+    clearForm();renderLogs();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
+  }
+  function displayValue(s){return s||'—';}
+  function makeCell(text,cls=''){const td=document.createElement('td');td.textContent=displayValue(text);td.className=cls+(text?'':' blank');return td;}
+  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;const m=lookup(row.sign);return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,m?.formation||'',m?.play||''].join(' ').toLowerCase().includes(q);});
+    for(const row of results){const match=lookup(row.sign)||{};const tr=document.createElement('tr');tr.setAttribute('tabindex','0');tr.setAttribute('aria-label',row.time+'の記録を編集');tr.append(makeCell(row.time,'time'),makeCell(row.down),makeCell(row.distance),makeCell(row.strSide),makeCell(match.formation),makeCell(match.play),makeCell(row.remark,'remark'));tr.addEventListener('click',()=>editRecord(row.id));tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();editRecord(row.id);}});tbody.append(tr);}
+    if(results.length===0){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='noresults';td.textContent='該当する記録がありません';tr.append(td);tbody.append(tr);}
+    $('count').textContent=logs.length+' plays'+(q?' / '+results.length+' found':'');
+  }
+  function editRecord(id){const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
+  function setTableMode(state){tableMode=state;document.body.classList.toggle('table-mode',tableMode);$('toggleTable').textContent=tableMode?'← 入力に戻る':'⤢ 表を拡大';$('search').value='';renderLogs();}
+  function csvEscape(s){const v=String(s??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  function exportCSV(){const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark'],...logs.map(r=>{const m=lookup(r.sign)||{};return [r.time,r.down,r.distance,r.strSide,r.sign,m.formation||'',m.play||'',r.remark];})];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('CSVを出力しました');}
+  for(const el of document.querySelectorAll('.field'))el.addEventListener('click',()=>focusField(el.dataset.field));
+  for(const el of document.querySelectorAll('[data-key]'))el.addEventListener('click',()=>enterKey(el.dataset.key));
+  $('tab').addEventListener('click',moveTab);$('backspace').addEventListener('click',backspace);$('enter').addEventListener('click',saveRecord);
+  $('toggleTable').addEventListener('click',()=>setTableMode(!tableMode));$('cancelEdit').addEventListener('click',()=>{clearForm();toast('編集をキャンセルしました');});$('exportBtn').addEventListener('click',exportCSV);$('search').addEventListener('input',renderLogs);
+  $('remark').addEventListener('input',()=>{current.remark=$('remark').value});
+  document.addEventListener('keydown',e=>{if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')){e.preventDefault();saveRecord();}});
+  renderClock();setInterval(renderClock,1000);renderFields();renderLogs();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
+</script>
+</body>
+</html>
