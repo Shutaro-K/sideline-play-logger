@@ -101,6 +101,9 @@
     .toast{position:fixed;z-index:10;bottom:calc(var(--peek) + 16px);left:50%;transform:translateX(-50%) translateY(9px);background:#243b51;color:white;padding:9px 18px;border-radius:9px;box-shadow:0 8px 30px #0012;font-size:12px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .14s,transform .14s;white-space:nowrap}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .table-mode .toast{bottom:22px}
+    .storage-notice{position:fixed;z-index:11;top:65px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:10px 14px;border:1px solid #e6a14a;border-radius:8px;background:#fff5e6;color:#704313;font-size:12px;box-shadow:0 3px 16px #0012}
+    .storage-notice button{margin-left:8px}
+    button:disabled{cursor:wait;opacity:.6}
     @media (max-width:1020px) {
       .entry-stage{grid-template-columns:minmax(0,1fr) minmax(275px,31vw);gap:12px;padding:12px}
       .form-panel{padding:14px}
@@ -150,7 +153,7 @@
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand"><div class="mark" aria-hidden="true">S</div><div><div class="brand-name">SIDELINE LOG</div><div class="brand-sub">PLAY TRACKER / UI PROTOTYPE</div></div></div>
-    <div class="top-actions"><span class="demo-pill">DEMO · CSV未接続</span><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn">↓ CSV出力</button></div>
+    <div class="top-actions"><span class="demo-pill">DEMO · CSV未接続</span><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn" disabled>↓ CSV出力</button></div>
   </header>
   <main class="entry-stage">
     <section class="panel form-panel" aria-label="プレー入力">
@@ -175,16 +178,18 @@
         <button type="button" class="key side" data-key="L">L</button><button type="button" class="key" data-key="0">0</button><button type="button" class="key side" data-key="R">R</button>
       </div>
       <div class="commands"><button type="button" class="cmd" id="tab">Tab <span>次へ →</span></button><button type="button" class="cmd" id="backspace">⌫ <span>削除</span></button></div>
-      <button type="button" class="enter" id="enter">Enter　·　記録する</button>
+      <button type="button" class="enter" id="enter" disabled>Enter　·　記録する</button>
       <div class="enter-hint">空欄のままEnterもOK</div>
     </section>
   </main>
   <section class="log-zone" id="logZone" aria-label="プレー記録一覧">
-    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
+    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="resetBtn" disabled>リセット</button><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
     <div class="table-wrap" id="tableWrap"><table aria-label="プレー記録"><colgroup><col class="time"><col class="down"><col class="dist"><col class="sidecol"><col class="formation"><col class="play"><col class="remark"></colgroup><thead><tr><th>TIME</th><th>DOWN</th><th>DIST</th><th>STR SIDE</th><th>FORMATION</th><th>PLAY</th><th>REMARK</th></tr></thead><tbody id="logBody"></tbody></table></div>
   </section>
 </div>
 <div role="status" class="toast" id="toast" aria-live="polite"></div>
+<div class="storage-notice" id="storageNotice" role="status" aria-live="polite" hidden><span id="storageMessage"></span><button type="button" id="retryStorage" hidden>復元を再試行</button></div>
+<script src="storage.js"></script>
 <script>
   'use strict';
   // UI確認用：以下は架空データ。実際のサインCSV形式は未定。
@@ -194,18 +199,20 @@
     '34567': {formation:'BUNCH RIGHT',play:'FLOOD'},
     '52647': {formation:'STACK RIGHT',play:'SLANT / FLAT'}
   };
-  const SAMPLE_LOGS = [
-    {id:'demo-1',time:'13:14:25',down:'1',distance:'10',strSide:'R',sign:'12345',remark:'',sample:true},
-    {id:'demo-2',time:'13:16:07',down:'2',distance:'7',strSide:'L',sign:'23456',remark:'Blitz',sample:true},
-    {id:'demo-3',time:'13:17:00',down:'',distance:'',strSide:'',sign:'',remark:'',sample:true},
-    {id:'demo-4',time:'13:18:12',down:'3',distance:'4',strSide:'R',sign:'34567',remark:'',sample:true}
-  ];
   const fields=['down','distance','strSide','sign'];
   const blank=()=>({down:'',distance:'',strSide:'',sign:'',remark:''});
   let current=blank();let active='down';let editingId=null;let tableMode=false;
-  let logs=SAMPLE_LOGS.map(x=>({...x}));
+  let logs=[];let ready=false;let busy=true;
   const $=id=>document.getElementById(id);
   const lookup=sign=>DEMO_LOOKUP[sign]||null;
+  function storageNotice(message='',retry=false){$('storageMessage').textContent=message;$('storageNotice').hidden=!message;$('retryStorage').hidden=!retry;}
+  function setBusy(state){busy=state;for(const el of document.querySelectorAll('.entry-stage button,.entry-stage textarea,#exportBtn,#resetBtn'))el.disabled=busy||!ready;}
+  async function restoreRecords(){
+    setBusy(true);$('retryStorage').disabled=true;storageNotice('記録を復元しています…');
+    try{logs=await PlayLogStore.load();ready=true;renderLogs();storageNotice();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});}
+    catch(error){console.error('Record restore failed',error);storageNotice('記録を復元できません。上書きを防ぐため記録操作を停止しています。別のタブを閉じるなどして再試行してください。',true);}
+    finally{setBusy(false);$('retryStorage').disabled=false;}
+  }
   function nowTime(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
   function renderClock(){$('clock').textContent=nowTime();}
   function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1850);}
@@ -223,29 +230,52 @@
   function moveTab(){const idx=fields.indexOf(active);focusField(fields[(idx+1)%fields.length]);}
   function backspace(){if(active==='strSide')current.strSide='';else current[active]=current[active].slice(0,-1);renderFields();}
   function clearForm(){current=blank();active='down';editingId=null;$('formTitle').textContent='プレーを記録';$('entryState').textContent='NEW PLAY';$('formInfo').textContent='すべて空欄でも記録できます ／ 記録後は全項目クリア';$('cancelEdit').hidden=true;renderFields();}
-  function saveRecord(){current.remark=$('remark').value;
-    if(editingId){const record=logs.find(x=>x.id===editingId);if(!record){clearForm();return;}Object.assign(record,current);toast('記録を更新しました（時刻は維持）');}
-    else{logs.push({id:'log-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),time:nowTime(),...current});toast('プレーを記録しました');}
-    clearForm();renderLogs();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
+  async function saveRecord(){
+    if(!ready||busy)return;
+    current.remark=$('remark').value;
+    const original=editingId===null?null:logs.find(x=>x.id===editingId);
+    if(editingId!==null&&!original){storageNotice('編集対象が見つかりません。入力内容を確認してください。');return;}
+    const matched=lookup(current.sign)||{};
+    const details=original&&original.sign===current.sign?{formation:original.formation,play:original.play}:{formation:matched.formation||'',play:matched.play||''};
+    const createdAt=new Date();
+    const record=original?{...original,...current,...details}:{...current,...details,time:createdAt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}),recordedAt:createdAt.toISOString()};
+    setBusy(true);
+    try{
+      if(original){await PlayLogStore.update(record);logs[logs.findIndex(x=>x.id===record.id)]=record;}
+      else{logs.push(await PlayLogStore.add(record));}
+      storageNotice();clearForm();renderLogs();toast(original?'記録を更新しました（時刻は維持）':'プレーを保存しました');
+      requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
+    }catch(error){console.error('Record save failed',error);storageNotice('未保存：保存できませんでした。入力内容は残しています。Enterで再試行してください。');}
+    finally{setBusy(false);}
+  }
+  async function resetRecords(){
+    if(!ready||busy)return;
+    if(logs.length&&!confirm('CSVファイルを端末に保存し、内容を確認しましたか？\n確認済みの場合のみ「OK」を押してください。'))return;
+    if(!confirm('すべての記録を削除します。この操作は取り消せません。よろしいですか？'))return;
+    setBusy(true);
+    try{await PlayLogStore.clear();logs=[];$('search').value='';clearForm();renderLogs();storageNotice();toast('すべての記録を削除しました');}
+    catch(error){console.error('Record reset failed',error);storageNotice('リセットできませんでした。記録は残しています。再試行してください。');}
+    finally{setBusy(false);}
   }
   function displayValue(s){return s||'—';}
   function makeCell(text,cls=''){const td=document.createElement('td');td.textContent=displayValue(text);td.className=cls+(text?'':' blank');return td;}
-  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;const m=lookup(row.sign);return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,m?.formation||'',m?.play||''].join(' ').toLowerCase().includes(q);});
-    for(const row of results){const match=lookup(row.sign)||{};const tr=document.createElement('tr');tr.setAttribute('tabindex','0');tr.setAttribute('aria-label',row.time+'の記録を編集');tr.append(makeCell(row.time,'time'),makeCell(row.down),makeCell(row.distance),makeCell(row.strSide),makeCell(match.formation),makeCell(match.play),makeCell(row.remark,'remark'));tr.addEventListener('click',()=>editRecord(row.id));tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();editRecord(row.id);}});tbody.append(tr);}
+  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,row.formation,row.play].join(' ').toLowerCase().includes(q);});
+    for(const row of results){const tr=document.createElement('tr');tr.setAttribute('tabindex','0');tr.setAttribute('aria-label',row.time+'の記録を編集');tr.append(makeCell(row.time,'time'),makeCell(row.down),makeCell(row.distance),makeCell(row.strSide),makeCell(row.formation),makeCell(row.play),makeCell(row.remark,'remark'));tr.addEventListener('click',()=>editRecord(row.id));tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();editRecord(row.id);}});tbody.append(tr);}
     if(results.length===0){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='noresults';td.textContent='該当する記録がありません';tr.append(td);tbody.append(tr);}
     $('count').textContent=logs.length+' plays'+(q?' / '+results.length+' found':'');
   }
-  function editRecord(id){const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
+  function editRecord(id){if(!ready||busy)return;const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
   function setTableMode(state){tableMode=state;document.body.classList.toggle('table-mode',tableMode);$('toggleTable').textContent=tableMode?'← 入力に戻る':'⤢ 表を拡大';$('search').value='';renderLogs();}
   function csvEscape(s){const v=String(s??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
-  function exportCSV(){const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark'],...logs.map(r=>{const m=lookup(r.sign)||{};return [r.time,r.down,r.distance,r.strSide,r.sign,m.formation||'',m.play||'',r.remark];})];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('CSVを出力しました');}
+  function exportCSV(){if(!ready||busy)return;const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark'],...logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark])];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('CSVを出力しました。端末への保存を確認してください');}
   for(const el of document.querySelectorAll('.field'))el.addEventListener('click',()=>focusField(el.dataset.field));
   for(const el of document.querySelectorAll('[data-key]'))el.addEventListener('click',()=>enterKey(el.dataset.key));
   $('tab').addEventListener('click',moveTab);$('backspace').addEventListener('click',backspace);$('enter').addEventListener('click',saveRecord);
   $('toggleTable').addEventListener('click',()=>setTableMode(!tableMode));$('cancelEdit').addEventListener('click',()=>{clearForm();toast('編集をキャンセルしました');});$('exportBtn').addEventListener('click',exportCSV);$('search').addEventListener('input',renderLogs);
+  $('resetBtn').addEventListener('click',resetRecords);$('retryStorage').addEventListener('click',restoreRecords);
   $('remark').addEventListener('input',()=>{current.remark=$('remark').value});
-  document.addEventListener('keydown',e=>{if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')){e.preventDefault();saveRecord();}});
-  renderClock();setInterval(renderClock,1000);renderFields();renderLogs();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
+  document.addEventListener('keydown',e=>{if(!ready||busy)return;if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')&&!e.target.closest('#resetBtn,#exportBtn,#retryStorage,#toggleTable,#cancelEdit')){e.preventDefault();saveRecord();}});
+  renderClock();setInterval(renderClock,1000);renderFields();renderLogs();restoreRecords();
 </script>
 </body>
 </html>
