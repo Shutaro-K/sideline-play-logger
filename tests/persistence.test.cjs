@@ -179,6 +179,32 @@ test('CSV download includes blank rows, hidden Sign, latest edits, Japanese BOM 
   assert.deepEqual(await rows(page), records);
 });
 
+test('the same PLAY LOG export button downloads identical CSV in normal and expanded views', async t => {
+  const {page} = await fixture(t);
+  await fillPlay(page); await save(page); await save(page);
+  const records = await rows(page);
+  const button = await page.locator('#exportBtn').elementHandle();
+  const downloads = [];
+  assert.equal(await page.locator('.topbar #exportBtn').count(), 0);
+  for (const expanded of [false, true]) {
+    if (expanded) await page.locator('#toggleTable').click();
+    assert.equal(await page.locator('#exportBtn').count(), 1);
+    assert.equal(await page.locator('#exportBtn').isVisible(), true);
+    assert.equal(await page.evaluate(button => document.getElementById('exportBtn') === button, button), true);
+    assert.deepEqual(await page.locator('.log-actions button').evaluateAll(buttons => buttons.map(b => b.id)), ['resetBtn', 'exportBtn', 'toggleTable']);
+    assert.match(await page.locator('#toggleTable').textContent(), expanded ? /入力に戻る/ : /表を拡大/);
+    assert.equal(await page.locator('#search').isVisible(), expanded);
+    assert.equal(await page.locator('#count').textContent(), '2 plays');
+    if (!expanded) assert.equal((await page.locator('.log-toolbar').boundingBox()).height, 30);
+    const downloading = page.waitForEvent('download');
+    await page.locator('#exportBtn').click();
+    downloads.push(await fs.readFile(await (await downloading).path()));
+    assert.deepEqual(await rows(page), records);
+  }
+  assert.deepEqual(downloads[0], downloads[1]);
+  assert.match(downloads[0].toString('utf8'), /12345,TRIPS RIGHT,INSIDE ZONE/);
+});
+
 test('reset cancellation at either confirmation changes nothing, including the edit draft', async t => {
   const {page} = await fixture(t);
   await save(page);

@@ -157,7 +157,7 @@
 <div class="app" id="app">
   <header class="topbar">
     <div class="brand"><div class="mark" aria-hidden="true">S</div><div><div class="brand-name">SIDELINE LOG</div><div class="brand-sub">PLAY TRACKER / UI PROTOTYPE</div></div></div>
-    <div class="top-actions"><button type="button" class="demo-pill" id="importBtn" disabled>CSV読込 / 未読込</button><input type="file" id="signCsvInput" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time><button type="button" class="header-btn" id="exportBtn" disabled>↓ CSV出力</button></div>
+    <div class="top-actions"><button type="button" class="demo-pill" id="importBtn" disabled>CSV読込 / 未読込</button><input type="file" id="signCsvInput" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time></div>
   </header>
   <main class="entry-stage">
     <section class="panel form-panel" aria-label="プレー入力">
@@ -187,7 +187,7 @@
     </section>
   </main>
   <section class="log-zone" id="logZone" aria-label="プレー記録一覧">
-    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="resetBtn" disabled>リセット</button><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
+    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="resetBtn" disabled>リセット</button><button type="button" class="expand" id="exportBtn" disabled>↓ CSV出力</button><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
     <div class="table-wrap" id="tableWrap"><table aria-label="プレー記録"><colgroup><col class="time"><col class="down"><col class="dist"><col class="sidecol"><col class="formation"><col class="play"><col class="remark"></colgroup><thead><tr><th>TIME</th><th>DOWN</th><th>DIST</th><th>STR SIDE</th><th>FORMATION</th><th>PLAY</th><th>REMARK</th></tr></thead><tbody id="logBody"></tbody></table></div>
   </section>
 </div>
