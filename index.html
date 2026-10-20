@@ -1,307 +1,206 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#172c43">
-  <title>Sideline Play Logger — UI mockup</title>
-  <style>
-    :root { --navy:#182d44;--navy2:#263e56;--ink:#1b2e42;--muted:#698094;--line:#dce5ec;--soft:#f4f7fa;--blue:#1e69c4;--blueSoft:#eaf3ff;--orange:#e6a14a;--peek:clamp(193px,22.2dvh,235px); }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;background:var(--soft);color:var(--ink);overflow:hidden;-webkit-tap-highlight-color:transparent}
-    button,input,textarea{font:inherit}
-    button{cursor:pointer;touch-action:manipulation}
-    button:focus-visible,.field:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid #67a8fa;outline-offset:2px}
-    .app{height:100dvh;display:flex;flex-direction:column;min-height:0}
-    .topbar{height:65px;min-height:65px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 25px;gap:18px}
-    .brand{display:flex;align-items:center;gap:13px;min-width:0}
-    .mark{width:35px;height:35px;border:1px solid #527089;border-radius:8px;display:grid;place-items:center;color:#c5e1ff;font-weight:900;font-size:20px}
-    .brand-name{font-size:17px;font-weight:800;letter-spacing:.095em;white-space:nowrap}
-    .brand-sub{font-size:10px;color:#9eb4c9;letter-spacing:.15em;margin-top:3px}
-    .top-actions{display:flex;align-items:center;gap:12px}
-    .demo-pill{padding:7px 10px;border:1px solid #55718b;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#c8d9e8;white-space:nowrap}
-    .clock{font-size:16px;font-weight:700;letter-spacing:.035em;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .header-btn{background:#334f69;border:1px solid #5b728b;color:white;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:700;white-space:nowrap}
-    .header-btn:hover{background:#3c5d7c}
-    .entry-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,365px);gap:18px;padding:18px 24px 16px}
-    .panel{min-height:0;background:white;border:1px solid #e0e8ee;box-shadow:0 3px 20px rgba(39,66,91,.045);border-radius:14px}
-    .form-panel{padding:19px 22px;display:flex;flex-direction:column;overflow:auto}
-    .section-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
-    h1,h2,p{margin:0}
-    h1{font-size:20px;letter-spacing:.015em}
-    .helper{font-size:12px;color:var(--muted);margin-top:5px}
-    .entry-status{font-size:11px;color:#2065b2;background:#ebf3ff;border-radius:7px;padding:8px 10px;white-space:nowrap;font-weight:700}
-    .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .field{height:104px;background:#fbfcfd;border:1.5px solid var(--line);border-radius:11px;text-align:left;padding:15px 16px;display:flex;flex-direction:column;justify-content:space-between;transition:box-shadow .1s,border-color .1s,background .1s}
-    .field.active{border-color:var(--blue);background:#f0f7ff;box-shadow:0 0 0 2px rgba(30,105,196,.08)}
-    .field-top{display:flex;align-items:center;justify-content:space-between}
-    .field-label{font-size:12px;font-weight:800;color:#5b7086;letter-spacing:.05em}
-    .field-hint{font-size:10px;color:#8ba0b2}
-    .field-value{font-size:35px;line-height:1;font-weight:750;color:#1c324a;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .field-value.empty{color:#c5d1db;font-weight:400}
-    .field[data-field="sign"] .field-value{font-size:32px;letter-spacing:.085em}
-    .lookup{margin-top:13px;padding:12px 14px;min-height:70px;background:#f7fafc;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;gap:13px}
-    .lookup-icon{background:#e2ebf2;color:#627d94;border-radius:8px;width:37px;height:37px;display:grid;place-items:center;font-size:20px;flex:none}
-    .lookup-label{font-size:10px;font-weight:800;color:#7b91a3;letter-spacing:.09em;margin-bottom:5px}
-    .lookup-result{font-size:15px;font-weight:730;line-height:1.4}
-    .lookup-note{font-size:10px;font-weight:500;color:#8799a8;margin-left:9px}
-    .remark-head{display:flex;align-items:baseline;justify-content:space-between;margin-top:15px;margin-bottom:7px}
-    .remark-head label{font-weight:800;font-size:13px}
-    .remark-head span{font-size:11px;color:var(--muted)}
-    textarea{display:block;resize:none;width:100%;flex:1;min-height:68px;max-height:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px 13px;font-size:15px;line-height:1.55;color:var(--ink);background:#fff}
-    textarea::placeholder{color:#acbbc7}
-    .form-foot{display:flex;align-items:center;gap:10px;margin-top:13px;min-height:27px}
-    .foot-info{font-size:11px;color:#7b90a3}
-    .cancel-edit{margin-left:auto;border:1px solid #d8e3ec;color:#425f78;background:white;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700}
-    .keypad-panel{padding:18px;display:flex;flex-direction:column;min-height:0}
-    .keypad-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
-    .keypad-title{font-size:13px;font-weight:850;letter-spacing:.04em}
-    .keypad-help{font-size:10px;color:#8095a6}
-    .keypad-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(48px,1fr));gap:9px;flex:1;min-height:0}
-    .key{border:1px solid #d9e3eb;background:#f8fafc;border-radius:11px;color:#183149;font-size:30px;line-height:1;font-weight:600;min-height:48px}
-    .key:active{background:#dbeafe;transform:translateY(1px)}
-    .key.side{font-size:22px;color:#1466ba;background:#eff6ff;border-color:#c8dff9;font-weight:820}
-    .commands{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
-    .cmd{height:47px;border-radius:10px;border:1px solid #d6e1e8;background:#e9eff4;font-size:17px;font-weight:800;color:#344c63}
-    .cmd span{font-size:11px;font-weight:600;color:#6c8296;margin-left:7px}
-    .enter{margin-top:10px;height:57px;min-height:57px;border-radius:10px;border:0;background:var(--blue);color:white;font-size:20px;font-weight:850;letter-spacing:.06em}
-    .enter:active{background:#17549c}
-    .enter-hint{text-align:center;font-size:10px;color:#8397a8;margin-top:8px}
-    .log-zone{height:var(--peek);min-height:0;background:white;box-shadow:0 -5px 19px rgba(39,66,91,.085);border-top:3px solid #d08d3d;display:flex;flex-direction:column;z-index:2}
-    .log-toolbar{height:30px;min-height:30px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 24px;background:#fff}
-    .log-title{display:flex;align-items:center;gap:11px;min-width:0}
-    .accent-line{background:#df9641;height:16px;width:4px;border-radius:3px}
-    .log-title b{font-size:13px;letter-spacing:.07em}
-    .log-title small{font-size:11px;color:#8296a7}
-    .log-actions{display:flex;align-items:center;gap:11px}
-    .count{font-size:11px;color:#7690a5;font-weight:700;white-space:nowrap}
-    .expand{background:#eaf3ff;color:#165eac;border:1px solid #cddff3;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;white-space:nowrap}
-    .table-search{height:34px;width:245px;background:#f7fafc;border:1px solid var(--line);border-radius:8px;padding:0 11px;font-size:12px;display:none}
-    .table-wrap{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-color:#b8c8d7 #f7f9fb}
-    table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;min-width:790px}
-    col.time{width:138px} col.down{width:78px} col.dist{width:78px} col.sidecol{width:86px} col.formation{width:190px} col.play{width:245px} col.remark{width:auto}
-    thead th{position:sticky;top:0;z-index:1;background:#edf2f6;border-bottom:1px solid #dae4ec;border-right:1px solid #e0e7ed;height:27px;padding:4px 14px;text-align:left;font-size:10px;letter-spacing:.07em;color:#70869b;text-transform:uppercase;white-space:nowrap}
-    tbody td{height:44px;max-height:44px;border-bottom:1px solid #e8edf1;border-right:1px solid #f0f3f6;padding:7px 14px;font-size:13px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-    tbody tr{background:white;cursor:pointer}
-    tbody tr:nth-child(even){background:#fafcfe}
-    tbody tr:hover{background:#f0f7ff}
-    td.time{font-variant-numeric:tabular-nums;font-weight:750;color:#274665}
-    td.blank{color:#a0b0bf}
-    td.remark{color:#586f82}
-    .noresults{padding:20px;color:#8195a7;text-align:center;font-size:13px}
-    .table-mode .entry-stage{display:none}
-    .table-mode .log-zone{height:auto;flex:1;border-top-width:0}
-    .table-mode .log-toolbar{height:65px;min-height:65px;padding:0 28px}
-    .table-mode .log-title b{font-size:17px}
-    .table-mode .table-search{display:block}
-    .table-mode thead th{height:43px;font-size:12px}
-    .table-mode tbody td{height:58px;max-height:58px;font-size:14px}
-    .table-mode .expand{padding:11px 18px}
-    .toast{position:fixed;z-index:10;bottom:calc(var(--peek) + 16px);left:50%;transform:translateX(-50%) translateY(9px);background:#243b51;color:white;padding:9px 18px;border-radius:9px;box-shadow:0 8px 30px #0012;font-size:12px;font-weight:700;pointer-events:none;opacity:0;transition:opacity .14s,transform .14s;white-space:nowrap}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    .table-mode .toast{bottom:22px}
-    .storage-notice{position:fixed;z-index:11;top:65px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:10px 14px;border:1px solid #e6a14a;border-radius:8px;background:#fff5e6;color:#704313;font-size:12px;box-shadow:0 3px 16px #0012}
-    .storage-notice button{margin-left:8px}
-    button.demo-pill{background:transparent}
-    .lookup > div{min-width:0;flex:1;overflow-wrap:anywhere}
-    .cwm-branch{margin-left:auto;flex:none;border:1px solid #c8dff9;background:#eff6ff;color:#165eac;border-radius:7px;padding:7px 10px;font-size:12px;font-weight:700}
-    .cwm-branch.active{outline:2px solid var(--blue);outline-offset:2px}
-    button:disabled{cursor:wait;opacity:.6}
-    @media (max-width:1020px) {
-      .entry-stage{grid-template-columns:minmax(0,1fr) minmax(275px,31vw);gap:12px;padding:12px}
-      .form-panel{padding:14px}
-      .keypad-panel{padding:12px}
-      .field{height:87px;padding:11px 13px}
-      .field-value{font-size:29px}
-      h1{font-size:18px}
-      .demo-pill:not(button){display:none}
-      .topbar{padding:0 14px}
-      .log-toolbar{padding:0 12px}
-    }
-    @media(max-height:800px){
-      .topbar{height:54px;min-height:54px}
-      .entry-stage{padding:10px 16px;gap:12px}
-      .form-panel{padding:12px 16px}
-      .section-top{margin-bottom:8px}
-      .field-grid{gap:8px}
-      .field{height:79px;padding:9px 12px}
-      .field-value{font-size:29px}
-      .lookup{margin-top:8px;min-height:55px;padding:8px}
-      .remark-head{margin-top:8px;margin-bottom:5px}
-      textarea{min-height:45px}
-      .keypad-panel{padding:11px 14px}
-      .keypad-head{margin-bottom:8px}
-      .keypad-grid{gap:6px;grid-template-rows:repeat(4,minmax(35px,1fr))}
-      .key{min-height:35px;font-size:25px}
-      .commands{margin-top:6px;gap:6px}
-      .cmd{height:37px}
-      .enter{height:43px;min-height:43px;margin-top:6px}
-      .enter-hint{margin-top:5px}
-      .form-foot{margin-top:5px}
-    }
-    @media(max-width:650px){
-      body{overflow:auto}
-      .topbar{min-height:56px}
-      .brand-sub,.clock,.header-btn{display:none}
-      .entry-stage{grid-template-columns:minmax(0,1fr);overflow:auto}
-      .panel{min-height:385px}
-      .keypad-panel{min-height:470px}
-      .log-zone{height:215px;min-height:215px}
-      .table-mode .log-zone{min-height:0}
-      .table-search{width:140px!important}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sideline Play Logger</title>
+<style>
+:root{--ink:#20354b;--muted:#728397;--line:#d9e1e9;--bg:#f1f4f7;--blue:#1e65b6;--log-height:346px;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Hiragino Sans",sans-serif;color:var(--ink);background:var(--bg)}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overscroll-behavior:none}body{overflow:hidden}button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #639ee5;outline-offset:1px}button:disabled{opacity:.42;cursor:default}button{border:1px solid var(--line);background:white;border-radius:6px}button:active{filter:brightness(.94)}[hidden]{display:none!important}h1,p{margin:0}
+.app{height:100vh;height:100dvh;display:flex;flex-direction:column;min-height:0}.top{height:54px;flex:none;display:flex;align-items:center;padding:5px 10px;gap:9px;background:#20354b;color:white}.quarter{display:flex;align-items:center;gap:5px}.quarter b{font-size:15px;margin-right:3px}.q{width:51px;height:42px;background:#2c4259;border-color:#4c6278;color:#d9e6f5;font-size:20px;font-weight:650}.q[aria-pressed=true]{background:#eef5ff;color:#163e6f;border-color:white;box-shadow:inset 0 -3px #5d9ce4}.top-right{margin-left:auto;display:flex;align-items:center;gap:12px}.prototype{font-size:10px;color:#c5d2e0}.import{height:37px;padding:0 12px;color:white;background:#324d68;border-color:#647d95;font-size:12px;font-weight:650}.clock{font-size:19px;font-weight:650;font-variant-numeric:tabular-nums}
+.entry{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 30.5%;gap:9px;padding:8px}.form{display:flex;flex-direction:column;min-width:0;min-height:0;gap:8px}.target{height:23px;flex:none;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted)}.target strong{color:#285c94;font-size:12px}.target button{margin-left:auto;font-size:11px;padding:3px 8px;background:#f8fafc}.fields{display:grid;grid-template-columns:.65fr 1.55fr .7fr 1.6fr;gap:7px;flex:none;height:93px}.field,.distance{min-width:0;border:1.5px solid var(--line);background:white;border-radius:7px;text-align:left;padding:8px 10px}.field{display:flex;flex-direction:column;justify-content:space-between}.label{font-size:11px;font-weight:750;letter-spacing:.06em;color:#708294}.value{font-size:32px;font-weight:680;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.value.empty{color:#b9c6d2}.field[data-field=sign] .value{font-size:30px;letter-spacing:.035em}.active{border-color:var(--blue)!important;background:#f1f7ff!important;box-shadow:0 0 0 1px #1e65b615}.distance{padding:8px;display:flex;flex-direction:column;gap:6px}.dist-options{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;flex:1}.dist-options button{padding:0;font-size:15px;min-width:0;font-weight:650;background:#f4f7fa}.dist-options button[aria-pressed=true]{background:#dcecff;border-color:#5594dc;color:#164e8c}
+.lookup{flex:1;min-height:90px;border:1px solid var(--line);background:white;border-radius:7px;padding:11px 13px;display:flex;flex-direction:column;gap:8px;overflow:auto}.lookup-head{display:flex;gap:9px;align-items:center}.lookup-head .label{margin-right:auto}.lookup-status{font-size:10px;color:var(--muted)}.branch{font-size:12px;min-height:32px;padding:3px 8px;background:#eaf3ff;border-color:#94b9e2;color:#20598e}.formation{font-size:15px;font-weight:600;color:#536a7f}.play{font-size:clamp(20px,2.4vw,32px);line-height:1.25;font-weight:750;overflow-wrap:anywhere}.play.pending{font-size:20px;color:#7c6333}.notes{display:grid;grid-template-columns:minmax(0,1.65fr) 1fr 1fr;gap:8px;flex:none;height:91px}.remark-wrap{display:flex;flex-direction:column;gap:4px;min-width:0}.remark-wrap .label{padding-left:1px}textarea{resize:none;background:white;border:1.5px solid var(--line);border-radius:7px;padding:7px 9px;line-height:1.4;font-size:15px;width:100%;min-height:0}.remark-wrap textarea{flex:1}.observation{display:flex;align-items:center;justify-content:center;gap:9px;font-size:24px;font-weight:750;background:#fff;position:relative}.observation small{font-size:11px;color:var(--muted);font-weight:500}.observation.filled{border-color:#6eab99;background:#f0f8f5}.observation .check{font-size:16px;color:#2b8167}.keypad{display:flex;flex-direction:column;min-height:0;border-left:1px solid #d4dee8;padding-left:9px;gap:7px}.keys{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:6px}.key{min-height:0;font-size:clamp(25px,3vw,39px);background:#e5ebf1;border-color:#cbd6e0;border-radius:8px;font-weight:550}.key[data-key=L]{background:#d7eaff;color:#145eae;border-color:#8db8e9}.key[data-key=R]{background:#ffe1e6;color:#b12e48;border-color:#e9a4b2}.commands{display:grid;grid-template-columns:1fr 2fr;gap:7px;height:58px;flex:none}.backspace{background:#e4ebf1;font-size:27px}.enter{background:var(--blue);color:white;border-color:var(--blue);font-size:21px;font-weight:750;display:flex;align-items:center;justify-content:center;gap:12px}.enter small{font-size:11px;font-weight:500;letter-spacing:0}
+.log{height:var(--log-height);flex:none;min-height:0;background:white;border-top:2px solid #abbccb;display:flex;flex-direction:column}.toolbar{height:30px;min-height:30px;display:flex;align-items:center;gap:8px;padding:0 9px;white-space:nowrap}.log-heading{font-size:11px;font-weight:800;letter-spacing:.04em}.series-controls{display:flex;gap:4px;align-items:center}.series-controls span{font-size:10px;color:var(--muted)}.series-controls button{height:24px;min-width:43px;padding:0 7px;font-size:11px;font-weight:650}.series-controls [data-ending=Punt]{background:#fff1dc;border-color:#e6ba7c}.series-controls [data-ending=FG]{background:#e8f1ff;border-color:#b1ccec}.series-controls [data-ending=TD]{background:#e5f3e8;border-color:#a6cdae}.series-controls [data-ending=TO]{background:#ffe8e8;border-color:#e8b3b3}.log-actions{margin-left:auto;display:flex;align-items:center;gap:6px}.count{font-size:10px;color:var(--muted);min-width:37px;text-align:right}.log-actions button{height:24px;padding:0 9px;font-size:11px;font-weight:650;background:#eaf2fc;border-color:#cbdcee;color:#265b93}.search{height:30px;width:170px;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 8px;display:none}.table-wrap{flex:1;min-height:0;overflow:auto}table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;min-width:710px}col.time{width:88px}col.dd{width:56px}col.str{width:42px}col.inout{width:44px}col.remark{width:19%}thead th{position:sticky;top:0;background:#eaf0f5;z-index:1;color:#6c8094;font-size:10px;text-align:left;height:28px;letter-spacing:.07em;border-bottom:1px solid #cedae4;padding:4px 6px}tbody td{height:40px;padding:6px 6px;border-bottom:1px solid #dde6ed;border-right:1px solid #e8eef3;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}tbody tr{cursor:pointer;background:white}tbody tr:nth-child(even){background:#f8fafc}tbody tr:hover{filter:brightness(.97)}tbody tr.q-change td{border-top:4px double #415a72}tbody tr.series-change:not(.q-change) td{border-top:2px solid #b6c5d1}tbody tr[data-ending=Punt]{background:#ffdfb0}tbody tr[data-ending=FG]{background:#dceaff}tbody tr[data-ending=TD]{background:#ccead3}tbody tr[data-ending=TO]{background:#f7cece}.time-cell{font-variant-numeric:tabular-nums;font-weight:650}.play-cell{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.4}.play-cell strong{font-weight:650}.play-cell small{font-size:11px;color:#667d91;margin-right:7px}.ending-tag{float:right;margin-left:9px;font-size:10px;font-weight:750;padding:2px 6px;border-radius:4px;background:#ffffffb0;color:#29445e}.check-cell{text-align:center;color:#25765b;font-weight:700}.empty-row td{color:var(--muted);text-align:center}.full .entry{display:none}.full .log{flex:1;height:auto;border-top:0}.full .toolbar{height:52px;min-height:52px}.full .search{display:block}.full tbody td{height:53px;font-size:14px}.full thead th{height:34px}
+.observation-page{flex:1;min-height:0;padding:12px;display:flex;flex-direction:column;gap:10px}.page-head{display:flex;align-items:center;gap:12px}.page-head button{height:42px;padding:0 15px;background:white}.page-head h1{font-size:20px}.page-target{font-size:13px;padding:10px 12px;background:#e6edf6;border-left:3px solid #477db7;border-radius:4px}.observation-page textarea{flex:1;min-height:80px;font-size:21px;padding:14px}.coverage{display:flex;align-items:center;gap:7px;font-size:13px}.coverage button{height:43px;min-width:54px;font-size:18px}.coverage button[aria-pressed=true]{background:#deebfb;border-color:#5a90cc}.page-foot{display:flex;align-items:center;gap:10px;justify-content:flex-end;font-size:12px;color:var(--muted)}.page-foot button{height:43px;padding:0 20px;background:var(--blue);color:white;border-color:var(--blue);font-size:15px;font-weight:650}.page-foot .secondary{background:white;border-color:var(--line);color:var(--ink)}.toast{position:fixed;bottom:calc(var(--log-height) + 12px);left:50%;transform:translateX(-50%);background:#20354b;color:white;padding:10px 17px;border-radius:8px;box-shadow:0 4px 16px #0002;z-index:10;font-size:12px;max-width:90%;text-align:center;pointer-events:none}.error{position:fixed;top:60px;left:10px;right:10px;background:#fff2db;border:1px solid #c79242;padding:12px;z-index:11;font-size:12px;display:flex;align-items:center;gap:12px}.error span{flex:1}.error button{padding:6px 10px}.full .toast{bottom:16px}
+@media(min-height:950px){:root{--log-height:385px}.fields{height:108px}.notes{height:108px}.commands{height:65px}tbody td{height:45px}}
+@media(max-width:1050px){.fields{grid-template-columns:.62fr 1.5fr .65fr 1.5fr;gap:5px}.field{padding:8px}.value{font-size:28px}.field[data-field=sign] .value{font-size:26px}.distance{padding:8px 5px}.dist-options{gap:2px}.dist-options button{font-size:13px}.toolbar{gap:6px}.log-heading{font-size:10px}.series-controls{gap:3px}.log-actions{gap:4px}.prototype{display:none}.full .search{width:125px}.observation{font-size:21px;gap:5px}}
+@media(max-height:650px){:root{--log-height:190px}.top{height:48px}.q{height:36px}.entry{padding:6px;gap:7px}.fields{height:73px}.notes{height:66px}.lookup{min-height:65px;padding:7px 10px;gap:4px}.target{height:20px}.commands{height:45px}.play{font-size:21px}tbody td{height:32px}.formation{font-size:12px}}
+@media(max-width:800px){.top{gap:5px;padding:5px 7px}.q{width:39px}.top-right{gap:8px}.clock{font-size:15px}.import{padding:0 7px}.entry{grid-template-columns:minmax(0,1fr) 29%;gap:6px}.field{padding:7px 5px}.field[data-field=sign] .value{font-size:22px}.distance{padding:7px 4px}.dist-options{grid-template-columns:repeat(3,1fr)}.dist-options button{font-size:12px}.notes{gap:5px;grid-template-columns:1.5fr 1fr 1fr}.observation{font-size:18px;gap:4px}.observation small{font-size:9px}.keypad{padding-left:6px}.keys{gap:5px}.commands{gap:5px;grid-template-columns:1fr 1.7fr}.enter{font-size:19px;gap:4px;flex-direction:column}.enter small{font-size:9px}.toolbar{gap:5px;padding:0 6px}.log-heading{display:none}.series-controls span{font-size:9px}.series-controls button{min-width:36px;padding:0 5px}.log-actions button{padding:0 6px}.full .search{width:85px}.count{min-width:28px}}
+/* Reading details in the expanded log does not enter edit mode. */
+.note-trigger{display:none}.full .note-cell{padding:0}.full .note-summary{display:none}.full .note-trigger{display:block;width:100%;min-height:52px;border:0;border-radius:0;background:transparent;padding:10px 6px;text-align:inherit;font:inherit;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.full .note-trigger:hover,.full .note-trigger[aria-expanded=true]{background:#ffffff80;box-shadow:inset 0 0 0 2px #5686b2}.note-popover{position:fixed;z-index:20;display:flex;flex-direction:column;width:min(380px,calc(100vw - 24px));max-height:min(340px,calc(100dvh - 24px));background:#fff;border:1px solid #aabecf;border-radius:9px;box-shadow:0 9px 30px #132d4c2b;color:var(--ink)}.note-popover::before{content:"";position:absolute;width:12px;height:12px;background:white;left:var(--arrow-x,24px);top:-7px;transform:rotate(45deg);border-left:1px solid #aabecf;border-top:1px solid #aabecf}.note-popover[data-placement=above]::before{top:auto;bottom:-7px;transform:rotate(225deg)}.note-popover[data-placement=right]::before{left:-7px;top:var(--arrow-y,24px);transform:rotate(-45deg)}.note-popover[data-placement=left]::before{left:auto;right:-7px;top:var(--arrow-y,24px);transform:rotate(135deg)}.note-header{display:flex;align-items:center;gap:10px;padding:5px 10px 4px 13px;flex:none;border-bottom:1px solid #e4eaf0}.note-header button{margin-left:auto;border:0;background:transparent;width:36px;height:32px;font-size:23px;color:#6c8193;padding:0}.note-meta{font-size:11px;color:var(--muted);min-width:0}.note-content{padding:12px 13px;font-size:15px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;overscroll-behavior:contain;min-height:0;-webkit-user-select:text;user-select:text}
+#storageNotice{position:relative;top:auto;left:auto;right:auto;flex:none;margin:4px 8px 0;max-height:88px;overflow:auto}.form{overflow:auto}
+</style>
 </head>
 <body>
 <div class="app" id="app">
-  <header class="topbar">
-    <div class="brand"><div class="mark" aria-hidden="true">S</div><div><div class="brand-name">SIDELINE LOG</div><div class="brand-sub">PLAY TRACKER / UI PROTOTYPE</div></div></div>
-    <div class="top-actions"><button type="button" class="demo-pill" id="importBtn" disabled>CSV読込 / 未読込</button><input type="file" id="signCsvInput" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time></div>
+  <header class="top topbar">
+    <div class="quarter" role="group" aria-label="現在のQ"><b>Q</b><button class="q" data-q="1" aria-pressed="true">1</button><button class="q" data-q="2" aria-pressed="false">2</button><button class="q" data-q="3" aria-pressed="false">3</button><button class="q" data-q="4" aria-pressed="false">4</button><button class="q" data-q="OT" aria-pressed="false">OT</button></div>
+    <div class="top-right"><button class="import" id="importBtn">CSV読込</button><input id="signCsvInput" type="file" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time></div>
   </header>
-  <main class="entry-stage">
-    <section class="panel form-panel" aria-label="プレー入力">
-      <div class="section-top"><div><h1 id="formTitle">プレーを記録</h1><p class="helper">入力欄を選ぶ → テンキーで入力 → Enterで記録</p></div><span class="entry-status" id="entryState">NEW PLAY</span></div>
-      <div class="field-grid" id="fieldGrid">
-        <button type="button" class="field active" data-field="down" aria-label="Down入力"><div class="field-top"><span class="field-label">DOWN</span><span class="field-hint">1〜4</span></div><span class="field-value empty" id="value-down">—</span></button>
-        <button type="button" class="field" data-field="distance" aria-label="Distance入力"><div class="field-top"><span class="field-label">DISTANCE</span><span class="field-hint">yd</span></div><span class="field-value empty" id="value-distance">—</span></button>
-        <button type="button" class="field" data-field="strSide" aria-label="Strength Side入力"><div class="field-top"><span class="field-label">STR SIDE</span><span class="field-hint">L / R</span></div><span class="field-value empty" id="value-strSide">—</span></button>
-        <button type="button" class="field" data-field="sign" aria-label="Sign入力"><div class="field-top"><span class="field-label">SIGN</span><span class="field-hint">下5桁</span></div><span class="field-value empty" id="value-sign">—</span></button>
+<div class="error" id="storageNotice" role="status" aria-live="polite" hidden><span id="storageMessage"></span><button id="retryStorage" hidden>復元を再試行</button></div>
+  <main class="entry entry-stage" id="entry">
+    <section class="form" aria-label="プレー入力">
+      <div class="target"><strong id="target">新規 · Series 3</strong><span id="mappingLabel">対応CSV未読込</span><button id="cancelEdit" hidden>編集をやめる</button></div>
+      <div class="fields">
+        <button class="field active" data-field="down" aria-label="DN入力"><span class="label">DN</span><span class="value empty" id="value-down">—</span></button>
+        <div class="distance" id="distance" role="group" aria-label="DIST選択"><span class="label">DIST <span id="value-distance" hidden></span></span><div class="dist-options"><button data-distance="S" aria-pressed="false">S</button><button data-distance="M" aria-pressed="false">M</button><button data-distance="L" aria-pressed="false">L</button><button data-distance="10" aria-pressed="false">10</button><button data-distance="10+" aria-pressed="false">10+</button></div></div>
+        <button class="field" data-field="strSide" aria-label="STR入力"><span class="label">STR</span><span class="value empty" id="value-strSide">—</span></button>
+        <button class="field" data-field="sign" aria-label="SIGN入力"><span class="label">SIGN</span><span class="value empty" id="value-sign">—</span></button>
       </div>
-      <div class="lookup" aria-live="polite"><span class="lookup-icon">↗</span><div><div class="lookup-label">SIGN LOOKUP / サイン照合</div><div class="lookup-result" id="lookupResult">Sign対応CSVが未読込です</div></div><button type="button" class="cwm-branch" id="cwmBranchInput" hidden>枝番 —</button></div>
-      <div class="remark-head"><label for="remark">REMARK</label><span>必要なときだけ文字入力（キーボード）</span></div>
-      <textarea id="remark" placeholder="例）Blitz、守備の反応、気づいたこと…" spellcheck="false"></textarea>
-      <div class="form-foot"><span class="foot-info" id="formInfo">すべて空欄でも記録できます ／ 記録後は全項目クリア</span><button type="button" class="cancel-edit" id="cancelEdit" hidden>編集をキャンセル</button></div>
+      <div class="lookup" id="lookupResult" aria-live="polite"><div class="lookup-head"><span class="label">PLAY</span><span class="lookup-status" id="lookupStatus">CSV未読込</span><button class="branch" id="cwmBranchInput" hidden>枝番 —</button></div><div class="formation" id="formation"></div><div class="play pending" id="play">Sign対応CSVを読み込んでください</div></div>
+      <div class="notes"><label class="remark-wrap"><span class="label">REMARK</span><textarea id="remark" aria-label="Remark" spellcheck="false"></textarea></label><button class="observation" id="insideBtn">IN <span class="check" id="insideCheck"></span><small>記入 ›</small></button><button class="observation" id="outsideBtn">OUT <span class="check" id="outsideCheck"></span><small>記入 ›</small></button></div>
     </section>
-    <section class="panel keypad-panel" aria-label="専用テンキー">
-      <div class="keypad-head"><div class="keypad-title">KEYPAD <span style="color:#93a4b2;font-weight:500">/ 専用テンキー</span></div><span class="keypad-help">標準キーボード不要</span></div>
-      <div class="keypad-grid" id="keypad">
-        <button type="button" class="key" data-key="7">7</button><button type="button" class="key" data-key="8">8</button><button type="button" class="key" data-key="9">9</button>
-        <button type="button" class="key" data-key="4">4</button><button type="button" class="key" data-key="5">5</button><button type="button" class="key" data-key="6">6</button>
-        <button type="button" class="key" data-key="1">1</button><button type="button" class="key" data-key="2">2</button><button type="button" class="key" data-key="3">3</button>
-        <button type="button" class="key side" data-key="L">L</button><button type="button" class="key" data-key="0">0</button><button type="button" class="key side" data-key="R">R</button>
-      </div>
-      <div class="commands"><button type="button" class="cmd" id="tab">Tab <span>次へ →</span></button><button type="button" class="cmd" id="backspace">⌫ <span>削除</span></button></div>
-      <button type="button" class="enter" id="enter" disabled>Enter　·　記録する</button>
-      <div class="enter-hint">空欄のままEnterもOK</div>
-    </section>
+    <section class="keypad" aria-label="専用テンキー"><div class="keys" id="keypad"><button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button><button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button><button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button><button class="key" data-key="L">L</button><button class="key" data-key="0">0</button><button class="key" data-key="R">R</button></div><div class="commands"><button class="backspace" id="backspace" aria-label="1文字削除">⌫</button><button class="enter" id="enter">Enter <small id="enterAction">次：DIST</small></button></div></section>
   </main>
-  <section class="log-zone" id="logZone" aria-label="プレー記録一覧">
-    <div class="log-toolbar"><div class="log-title"><span class="accent-line"></span><b>PLAY LOG</b><small>時刻順の記録一覧</small></div><div class="log-actions"><input type="search" id="search" class="table-search" placeholder="ログを検索（全画面のみ）" aria-label="記録を検索"><span class="count" id="count">0 plays</span><button type="button" class="expand" id="resetBtn" disabled>リセット</button><button type="button" class="expand" id="exportBtn" disabled>↓ CSV出力</button><button type="button" class="expand" id="toggleTable">⤢ 表を拡大</button></div></div>
-    <div class="table-wrap" id="tableWrap"><table aria-label="プレー記録"><colgroup><col class="time"><col class="down"><col class="dist"><col class="sidecol"><col class="formation"><col class="play"><col class="remark"></colgroup><thead><tr><th>TIME</th><th>DOWN</th><th>DIST</th><th>STR SIDE</th><th>FORMATION</th><th>PLAY</th><th>REMARK</th></tr></thead><tbody id="logBody"></tbody></table></div>
-  </section>
+  <section class="observation-page" id="observationPage" hidden aria-label="観察情報入力"><div class="page-head"><button id="backToEntry">‹ 入力に戻る</button><h1 id="observationTitle">VS INSIDE</h1></div><div class="page-target" id="observationTarget"></div><div class="coverage" id="coverageGroup" hidden><span>Coverage</span><button data-cover="0" aria-pressed="false">0</button><button data-cover="2" aria-pressed="false">2</button><button data-cover="4" aria-pressed="false">4</button><button data-cover="QH" aria-pressed="false">QH</button><button data-cover="" aria-pressed="true">未選択</button></div><textarea id="observationText" aria-label="観察メモ" spellcheck="false"></textarea><div class="page-foot"><span id="observationSaveHint"></span><button class="secondary" id="returnWithDraft">入力に戻る</button><button id="saveObservation">このプレーを記録</button></div></section>
+  <section class="log" id="log" aria-label="PLAY LOG"><div class="toolbar log-toolbar"><b class="log-heading">PLAY LOG</b><div class="series-controls" aria-label="シリーズ終了"><span>シリーズ終了</span><button data-ending="Punt">Punt</button><button data-ending="FG">FG</button><button data-ending="TD">TD</button><button data-ending="TO">TO</button></div><div class="log-actions"><input class="search" id="search" type="search" placeholder="ログ検索" aria-label="ログ検索"><span class="count" id="count"></span><button id="resetBtn">リセット</button><button id="exportBtn">CSV出力</button><button id="toggleTable">表を拡大</button></div></div><div class="table-wrap" id="tableWrap"><table aria-label="プレー記録"><colgroup><col class="time"><col class="dd"><col class="str"><col class="play"><col class="inout"><col class="inout"><col class="remark"></colgroup><thead><tr><th>TIME</th><th>DD</th><th>STR</th><th>PLAY</th><th>IN</th><th>OUT</th><th>REMARK</th></tr></thead><tbody id="logBody"></tbody></table></div></section>
 </div>
-<div role="status" class="toast" id="toast" aria-live="polite"></div>
-<div class="storage-notice" id="storageNotice" role="status" aria-live="polite" hidden><span id="storageMessage"></span><button type="button" id="retryStorage" hidden>復元を再試行</button></div>
-<script src="storage.js"></script>
-<script src="sign-lookup.js"></script>
+<aside class="note-popover" id="notePopover" role="dialog" aria-modal="false" aria-labelledby="noteTitle" hidden><strong id="noteTitle" hidden></strong><div class="note-header"><div class="note-meta" id="noteMeta"></div><button id="closeNote" aria-label="吹き出しを閉じる">×</button></div><div class="note-content" id="noteContent"></div></aside>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="storage.js"></script><script src="sign-lookup.js"></script>
 <script>
-  'use strict';
-  const fields=['down','distance','strSide','sign'];
-  const blank=()=>({down:'',distance:'',strSide:'',sign:'',branch:'',remark:''});
-  let current=blank();let active='down';let editingId=null;let tableMode=false;
-  let logs=[];let ready=false;let busy=true;let signMapping=null;let recordSaveFailed=false;
-  const $=id=>document.getElementById(id);
-  function storedDetails(record){return {formation:record.formation,play:record.play,resolvedSign:record.resolvedSign||'',parentSign:record.parentSign||'',cwmBranch:record.cwmBranch||'',lookupStatus:record.lookupStatus||'legacy'};}
-  function originalSelection(){const row=logs.find(x=>x.id===editingId);return row&&row.sign===current.sign&&(row.branch||'')===current.branch?row:null;}
-  function selectionDetails(){const original=originalSelection();return original?storedDetails(original):SignLookup.resolve(signMapping,current.sign,current.branch);}
-  function cwmParent(){return signMapping?.bySign.get(current.sign)?.record_type==='cwm_parent'||(originalSelection()?.parentSign===current.sign&&Boolean(current.sign));}
-  function renderMappingState(){$('importBtn').textContent=signMapping?'CSV読込 / '+signMapping.rows.length+'件':'CSV読込 / 未読込';}
-  function storageNotice(message='',retry=false){$('storageMessage').textContent=message;$('storageNotice').hidden=!message;$('retryStorage').hidden=!retry;}
-  function setBusy(state){busy=state;for(const el of document.querySelectorAll('.entry-stage button,.entry-stage textarea,#exportBtn,#resetBtn,#importBtn,#signCsvInput'))el.disabled=busy||!ready;}
-  async function restoreRecords(){
-    setBusy(true);$('retryStorage').disabled=true;storageNotice('記録・対応表を復元しています…');
-    try{logs=await PlayLogStore.load();const savedMapping=await PlayLogStore.loadMapping();signMapping=savedMapping?SignLookup.validateRows(savedMapping.rows):null;ready=true;renderMappingState();renderFields();renderLogs();storageNotice();requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});}
-    catch(error){console.error('Record restore failed',error);storageNotice('記録・対応表を復元できません。上書きを防ぐため記録操作を停止しています。別のタブを閉じるなどして再試行してください。',true);}
-    finally{setBusy(false);$('retryStorage').disabled=false;}
-  }
-  async function importSigns(file){
-    if(!file||!ready||busy)return;
-    setBusy(true);
-    try{
-      const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());
-      const validated=SignLookup.parse(text);
-      await PlayLogStore.saveMapping({rows:validated.rows,importedAt:new Date().toISOString()});
-      signMapping=validated;renderMappingState();renderFields();storageNotice(recordSaveFailed?'未保存：記録の入力を保持しています。Enterで再試行してください。':'');toast('Sign対応CSVを保存しました（'+validated.rows.length+'件）');
-    }catch(error){storageNotice('CSVを適用できません。既存の対応表は保持しています。 '+error.message+(recordSaveFailed?' 未保存の記録も残しています。Enterで再試行してください。':'' ));}
-    finally{$('signCsvInput').value='';setBusy(false);}
-  }
-  function nowTime(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
-  function renderClock(){$('clock').textContent=nowTime();}
-  function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),1850);}
-  function focusField(name){if(!fields.includes(name))return;active=name;renderFields();}
-  function renderFields(){
-    fields.forEach(name=>{const el=document.querySelector('.field[data-field="'+name+'"]');el.classList.toggle('active',name===active);el.setAttribute('aria-pressed',String(name===active));const value=$('value-'+name);value.textContent=current[name]?(current[name]+(name==='sign'&&current.branch?' · '+current.branch:'')):'—';value.classList.toggle('empty',!current[name]);});
-    $('remark').value=current.remark;
-    const details=selectionDetails(),result=$('lookupResult');result.style.color='';
-    if(details.lookupStatus==='cwm_pending'){result.textContent='CWM / '+details.formation+' · 枝番未確定（テンキー1・2）';result.style.color='#ae7232';}
-    else if(details.formation||details.play){result.textContent=details.formation+'  /  '+details.play+(details.cwmBranch?'（枝番'+details.cwmBranch+'）':'')+(originalSelection()?'（保存済み）':'');}
-    else if(originalSelection()&&current.sign){result.textContent='保存済み：未照合（記録時の状態を保持）';}
-    else if(!signMapping){result.textContent='Sign対応CSVが未読込です（未照合のまま記録できます）';}
-    else if(!current.sign){result.textContent='Signを入力すると、Formation・Playを表示';}
-    else{result.textContent='該当なし（未照合のまま記録できます）';result.style.color='#ae7232';}
-    const branch=$('cwmBranchInput');branch.hidden=!cwmParent();branch.textContent='枝番 '+(current.branch||'—');branch.classList.toggle('active',active==='sign');branch.setAttribute('aria-label','CWM枝番入力。テンキーの1または2を押してください');
-  }
-  function enterKey(key){
-    if(key==='L'||key==='R'){current.strSide=key;active='strSide';renderFields();return;}
-    if(!/^\d$/.test(key))return;
-    if(active==='strSide'){toast('Str Sideは L / R で選択');return;}
-    if(active==='down'){if(!/^[1-4]$/.test(key)){toast('Downは1〜4で入力');return;}current.down=key;}
-    if(active==='distance'){if(current.distance.length>=3){toast('Distanceは3桁まで');return;}current.distance+=key;}
-    if(active==='sign'){if(current.sign.length>=5){if(cwmParent()){if(!['1','2'].includes(key)){toast('CWM枝番は1・2で入力');return;}current.branch=key;renderFields();return;}toast('Signは下5桁を入力');return;}current.branch='';current.sign+=key;}
-    renderFields();
-  }
-  function moveTab(){const idx=fields.indexOf(active);focusField(fields[(idx+1)%fields.length]);}
-  function backspace(){if(active==='sign'&&current.branch){current.branch='';renderFields();return;}if(active==='strSide')current.strSide='';else current[active]=current[active].slice(0,-1);renderFields();}
-  function clearForm(){if(recordSaveFailed)storageNotice();recordSaveFailed=false;current=blank();active='down';editingId=null;$('formTitle').textContent='プレーを記録';$('entryState').textContent='NEW PLAY';$('formInfo').textContent='すべて空欄でも記録できます ／ 記録後は全項目クリア';$('cancelEdit').hidden=true;renderFields();}
-  async function saveRecord(){
-    if(!ready||busy)return;
-    current.remark=$('remark').value;
-    const original=editingId===null?null:logs.find(x=>x.id===editingId);
-    if(editingId!==null&&!original){storageNotice('編集対象が見つかりません。入力内容を確認してください。');return;}
-    const details=selectionDetails();
-    const createdAt=new Date();
-    const record=original?{...original,...current,...details}:{...current,...details,time:createdAt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}),recordedAt:createdAt.toISOString()};
-    setBusy(true);
-    try{
-      if(original){await PlayLogStore.update(record);logs[logs.findIndex(x=>x.id===record.id)]=record;}
-      else{logs.push(await PlayLogStore.add(record));}
-      storageNotice();clearForm();renderLogs();toast(original?'記録を更新しました（時刻は維持）':'プレーを保存しました');
-      requestAnimationFrame(()=>{$('tableWrap').scrollTop=$('tableWrap').scrollHeight;});
-    }catch(error){recordSaveFailed=true;console.error('Record save failed',error);storageNotice('未保存：保存できませんでした。入力内容は残しています。Enterで再試行してください。');}
-    finally{setBusy(false);}
-  }
-  async function resetRecords(){
-    if(!ready||busy)return;
-    if(logs.length&&!confirm('CSVファイルを端末に保存し、内容を確認しましたか？\n確認済みの場合のみ「OK」を押してください。'))return;
-    if(!confirm('すべての記録を削除します。この操作は取り消せません。よろしいですか？'))return;
-    setBusy(true);
-    try{await PlayLogStore.clear();logs=[];$('search').value='';clearForm();renderLogs();storageNotice();toast('すべての記録を削除しました');}
-    catch(error){console.error('Record reset failed',error);storageNotice('リセットできませんでした。記録は残しています。再試行してください。');}
-    finally{setBusy(false);}
-  }
-  function displayValue(s){return s||'—';}
-  function makeCell(text,cls=''){const td=document.createElement('td');td.textContent=displayValue(text);td.className=cls+(text?'':' blank');return td;}
-  function renderLogs(){const q=$('search').value.trim().toLowerCase();const tbody=$('logBody');tbody.replaceChildren();let results=logs.filter(row=>{if(!q)return true;return [row.time,row.down,row.distance,row.strSide,row.sign,row.remark,row.formation,row.play,row.resolvedSign,row.parentSign,row.cwmBranch,row.lookupStatus].join(' ').toLowerCase().includes(q);});
-    for(const row of results){const tr=document.createElement('tr');tr.setAttribute('tabindex','0');tr.setAttribute('aria-label',row.time+'の記録を編集');tr.append(makeCell(row.time,'time'),makeCell(row.down),makeCell(row.distance),makeCell(row.strSide),makeCell(row.formation),makeCell(row.play),makeCell(row.remark,'remark'));tr.addEventListener('click',()=>editRecord(row.id));tr.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();editRecord(row.id);}});tbody.append(tr);}
-    if(results.length===0){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=7;td.className='noresults';td.textContent='該当する記録がありません';tr.append(td);tbody.append(tr);}
-    $('count').textContent=logs.length+' plays'+(q?' / '+results.length+' found':'');
-  }
-  function editRecord(id){if(!ready||busy)return;const row=logs.find(x=>x.id===id);if(!row)return;current={down:row.down,distance:row.distance,strSide:row.strSide,sign:row.sign,branch:row.branch||'',remark:row.remark};editingId=row.id;active='down';$('formTitle').textContent='記録を編集';$('entryState').textContent='EDIT '+row.time;$('formInfo').textContent='Enterで上書き保存 ／ 元の時刻は保持されます';$('cancelEdit').hidden=false;setTableMode(false);renderFields();toast('選択した行を編集中');}
-  function setTableMode(state){tableMode=state;document.body.classList.toggle('table-mode',tableMode);$('toggleTable').textContent=tableMode?'← 入力に戻る':'⤢ 表を拡大';$('search').value='';renderLogs();}
-  function csvEscape(s){const v=String(s??'');return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
-  function exportCSV(){if(!ready||busy)return;const rows=[['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark','Lookup Status','Resolved Sign','Parent Sign','CWM Branch'],...logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark,r.lookupStatus||'legacy',r.resolvedSign||'',r.parentSign||'',r.cwmBranch||''])];const csv='\uFEFF'+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('CSVを出力しました。端末への保存を確認してください');}
-  for(const el of document.querySelectorAll('.field'))el.addEventListener('click',()=>focusField(el.dataset.field));
-  for(const el of document.querySelectorAll('[data-key]'))el.addEventListener('click',()=>enterKey(el.dataset.key));
-  $('tab').addEventListener('click',moveTab);$('backspace').addEventListener('click',backspace);$('enter').addEventListener('click',saveRecord);
-  $('toggleTable').addEventListener('click',()=>setTableMode(!tableMode));$('cancelEdit').addEventListener('click',()=>{clearForm();toast('編集をキャンセルしました');});$('exportBtn').addEventListener('click',exportCSV);$('search').addEventListener('input',renderLogs);
-  $('resetBtn').addEventListener('click',resetRecords);$('retryStorage').addEventListener('click',restoreRecords);
-  $('importBtn').addEventListener('click',()=>{if(ready&&!busy)$('signCsvInput').click();});
-  $('signCsvInput').addEventListener('change',()=>importSigns($('signCsvInput').files[0]));
-  $('cwmBranchInput').addEventListener('click',()=>focusField('sign'));
-  $('remark').addEventListener('input',()=>{current.remark=$('remark').value});
-  document.addEventListener('keydown',e=>{if(!ready||busy)return;if(e.target=== $('remark')||e.target===$('search'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;if(/^\d$/.test(e.key)){e.preventDefault();enterKey(e.key);}else if(e.key.toUpperCase()==='L'||e.key.toUpperCase()==='R'){e.preventDefault();enterKey(e.key.toUpperCase());}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();moveTab();}else if(e.key==='Enter'&&!e.target.closest('tbody')&&!e.target.closest('#resetBtn,#exportBtn,#retryStorage,#toggleTable,#cancelEdit,#importBtn')){e.preventDefault();saveRecord();}});
-  renderClock();setInterval(renderClock,1000);renderFields();renderLogs();restoreRecords();
+
+'use strict';
+const $=id=>document.getElementById(id),order=['down','distance','strSide','sign','remark'];
+const blank=()=>({down:'',distance:'',strSide:'',sign:'',branch:'',remark:'',inside:'',outside:'',coverage:''});
+const quarters=['1','2','3','4','OT'],distances=['S','M','L','10','10+'];
+let draft=blank(),active='down',quarter='1',editing=null,parked=null,pageKind=null,full=false,mapping=null,logs=[],noteAnchor=null;
+let ready=false,busy=true,recordSaveFailed=false,stateFailure=false,stateWrites=Promise.resolve();
+function time(){return new Date().toLocaleTimeString('ja-JP',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function notify(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('toast').hidden=true,2400);}
+function storageNotice(message='',retry=false){$('storageMessage').textContent=message;$('storageNotice').hidden=!message;$('retryStorage').hidden=!retry;}
+function failureNotice(){return recordSaveFailed?'未保存：記録の入力を保持しています。記録確定を再試行してください。':stateFailure?'入力途中の保存に失敗しました。画面の入力は保持しています。記録確定を再試行してください。':'';}
+function setBusy(value){busy=value;document.querySelectorAll('.entry button,.entry textarea,.observation-page button,.observation-page textarea,.series-controls button,.q,#cancelEdit,#exportBtn,#resetBtn,#importBtn,#signCsvInput').forEach(el=>el.disabled=busy||!ready);document.querySelectorAll('.series-controls button').forEach(el=>el.disabled=busy||!ready||!logs.length);}
+function uiState(overrides={}){return {version:1,draft:{...draft},active,quarter,editing,parked:parked?structuredClone(parked):null,pageKind,...overrides};}
+function persistState(){
+ if(!ready||busy)return;
+ const snapshot=uiState();
+ stateWrites=stateWrites.then(()=>PlayLogStore.saveState(snapshot)).then(()=>{if(stateFailure){stateFailure=false;if(!recordSaveFailed)storageNotice();}}).catch(()=>{stateFailure=true;storageNotice(failureNotice());});
+}
+async function restoreRecords(){
+ setBusy(true);$('retryStorage').disabled=true;storageNotice('記録・対応表を復元しています…');
+ try{
+  logs=await PlayLogStore.load();const saved=await PlayLogStore.loadMapping();mapping=saved?SignLookup.validateRows(saved.rows):null;const state=await PlayLogStore.loadState();
+  quarter=quarters.includes(state?.quarter)?state.quarter:[...logs].reverse().find(r=>quarters.includes(r.q))?.q||'1';
+  draft={...blank(),...(state?.draft||{})};active=[...order,'branch'].includes(state?.active)?state.active:'down';editing=state?.editing??null;parked=state?.parked||null;pageKind=['inside','outside'].includes(state?.pageKind)?state.pageKind:null;
+  if(editing!==null&&!logs.some(r=>r.id===editing)){draft={...blank(),...(parked?.draft||{})};active=parked?.active||'down';editing=null;parked=null;pageKind=null;}
+  ready=true;recordSaveFailed=false;stateFailure=false;storageNotice();render();
+ }catch(error){ready=false;storageNotice('記録・対応表を復元できません。上書きを防ぐため記録操作を停止しています。別のタブを閉じるなどして再試行してください。',true);}
+ finally{setBusy(false);$('retryStorage').disabled=false;if(ready&&pageKind)openObservation(pageKind);}
+}
+function details(){const row=logs.find(r=>r.id===editing);return row&&row.sign===draft.sign&&(row.branch||'')===draft.branch?{...row,lookupStatus:row.lookupStatus||'legacy'}:SignLookup.resolve(mapping,draft.sign,draft.branch);}
+function upcomingSeries(){const last=logs.at(-1);return last?(last.series||1)+(last.ending?1:0):1;}
+function targetText(){const r=logs.find(r=>r.id===editing);return r?'編集 · Series '+(r.series||'—')+' / Play '+(logs.indexOf(r)+1)+' · '+(r.down||'—')+'-'+(r.distance||'—')+' · Sign '+(r.sign||'—'):'新規 · Series '+upcomingSeries();}
+function select(name){if(!ready||busy)return;active=name;renderForm();if(name==='remark')$('remark').focus();else document.activeElement?.blur();}
+function renderForm(){
+ for(const name of ['down','strSide','sign']){const v=$('value-'+name);v.textContent=draft[name]?(draft[name]+(name==='sign'&&draft.branch?' · '+draft.branch:'')):'—';v.classList.toggle('empty',!draft[name]);const b=document.querySelector('[data-field='+name+']');b.classList.toggle('active',active===name);b.setAttribute('aria-pressed',String(active===name));}
+ $('distance').classList.toggle('active',active==='distance');document.querySelectorAll('[data-distance]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.distance===draft.distance)));$('value-distance').textContent=draft.distance||'—';$('value-distance').hidden=!draft.distance||distances.includes(draft.distance);
+ if($('remark').value!==draft.remark)$('remark').value=draft.remark;$('remark').classList.toggle('active',active==='remark');
+ $('target').textContent=targetText();$('cancelEdit').hidden=editing===null;$('enterAction').textContent=editing!==null?'更新する':['sign','remark','branch'].includes(active)?'記録する':'次：'+({down:'DIST',distance:'STR',strSide:'SIGN'}[active]||'SIGN');
+ for(const kind of ['inside','outside']){const has=Boolean(draft[kind].trim()||(kind==='outside'&&draft.coverage));$(kind+'Check').textContent=has?'✓':'';$(kind+'Btn').classList.toggle('filled',has);}
+ const d=details();$('formation').textContent=d.formation||'';$('play').textContent=d.play||(!mapping?'Sign対応CSVが未読込です（未照合のまま記録できます）':draft.sign?'照合なし · '+draft.sign:'SIGNを入力');$('play').classList.toggle('pending',!d.play||d.lookupStatus==='cwm_pending');
+ $('lookupStatus').textContent=({not_loaded:'CSV未読込',empty:mapping?'':'CSV未読込',unmatched:'未照合',matched:d.protection?'照合済み／PP'+d.protection:'照合済み',pp_common:'共通プレー照合済み／PP'+d.protection+'（保護ルール未登録）',pp_ambiguous:'共通プレー未確定／PP'+d.protection,cwm_pending:'枝番未確定',cwm_resolved:'子プレー確定',legacy:'保存済み'}[d.lookupStatus]||'');
+ const parent=mapping?.bySign.get(draft.sign)?.record_type==='cwm_parent'||(d.parentSign===draft.sign&&draft.sign);$('cwmBranchInput').hidden=!parent;$('cwmBranchInput').textContent='枝番 '+(draft.branch||'—')+' · 1 / 2';$('cwmBranchInput').classList.toggle('active',active==='branch');
+ document.querySelectorAll('[data-q]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.q===quarter)));$('mappingLabel').textContent=mapping?'対応CSV '+mapping.rows.length+'件':'対応CSV未読込';$('importBtn').textContent=mapping?'CSV読込 / '+mapping.rows.length+'件':'CSV読込';persistState();
+}
+function cell(row,text,className=''){const el=document.createElement('td');el.textContent=text;el.className=className;row.append(el);return el;}
+function readableCell(tr,text,kind,row,className=''){
+ const td=cell(tr,'','note-cell '+className),summary=document.createElement('span');summary.className='note-summary';summary.textContent=text;td.append(summary);
+ if(!text.trim())return;
+ const button=document.createElement('button');button.className='note-trigger';button.dataset.kind=kind;button.textContent=text;button.setAttribute('aria-label',({inside:'IN',outside:'OUT',remark:'Remark'}[kind])+'の内容を表示');button.setAttribute('aria-controls','notePopover');button.setAttribute('aria-expanded','false');button.onclick=e=>{e.stopPropagation();showNote(button,row,kind);};td.append(button);
+}
+function closeNote(restoreFocus=false){
+ $('notePopover').hidden=true;if(noteAnchor){noteAnchor.setAttribute('aria-expanded','false');if(restoreFocus&&noteAnchor.isConnected)noteAnchor.focus();}noteAnchor=null;
+}
+function showNote(anchor,row,kind){
+ if(!full)return;if(noteAnchor===anchor&&!$('notePopover').hidden){closeNote();return;}closeNote();noteAnchor=anchor;
+ const popup=$('notePopover');$('noteTitle').textContent={inside:'VS INSIDE',outside:'VS OUTSIDE',remark:'REMARK'}[kind];$('noteMeta').textContent='Series '+(row.series||'—')+' / Play '+(logs.indexOf(row)+1)+' · '+row.time;
+ $('noteContent').textContent=kind==='outside'?[row.coverage?'Coverage：'+row.coverage:'',row.outside].filter(Boolean).join('\n'):row[kind];$('noteContent').scrollTop=0;
+ popup.style.maxHeight='min(340px, calc(100dvh - 24px))';popup.hidden=false;anchor.setAttribute('aria-expanded','true');
+ const r=anchor.getBoundingClientRect(),margin=12,gap=10,vw=document.documentElement.clientWidth,vh=window.innerHeight,w=popup.offsetWidth;
+ let h=popup.offsetHeight,side='below',x=r.left+r.width/2-w/2,y=r.bottom+gap;
+ const below=vh-margin-r.bottom-gap,above=r.top-margin-gap;
+ if(below<h){
+  if(above>=h){side='above';y=r.top-gap-h;}
+  else if(vw-margin-r.right-gap>=w){side='right';x=r.right+gap;y=r.top+r.height/2-h/2;}
+  else if(r.left-margin-gap>=w){side='left';x=r.left-gap-w;y=r.top+r.height/2-h/2;}
+  else {side=below>=above?'below':'above';popup.style.maxHeight=Math.max(80,side==='below'?below:above)+'px';h=popup.offsetHeight;y=side==='below'?r.bottom+gap:r.top-gap-h;}
+ }
+ x=Math.max(margin,Math.min(vw-margin-w,x));y=Math.max(margin,Math.min(vh-margin-h,y));popup.style.left=x+'px';popup.style.top=y+'px';popup.dataset.placement=side;
+ popup.style.setProperty('--arrow-x',Math.max(16,Math.min(w-28,r.left+r.width/2-x-6))+'px');popup.style.setProperty('--arrow-y',Math.max(16,Math.min(h-28,r.top+r.height/2-y-6))+'px');
+}
+
+function renderLogs(){
+ closeNote();const body=$('logBody');body.replaceChildren();const term=$('search').value.trim().toLowerCase();let shown=0;
+ logs.forEach((r,i)=>{if(term&&!Object.values(r).join(' ').toLowerCase().includes(term))return;shown++;const tr=document.createElement('tr');tr.dataset.id=r.id;tr.dataset.ending=r.ending||'';if(i&&logs[i-1].q&&r.q&&logs[i-1].q!==r.q)tr.classList.add('q-change');if(i&&logs[i-1].series&&r.series&&logs[i-1].series!==r.series)tr.classList.add('series-change');tr.tabIndex=0;tr.setAttribute('aria-label','Play '+(i+1)+' を編集');
+ cell(tr,r.time,'time-cell');cell(tr,(r.down||'—')+'-'+(r.distance||'—'));cell(tr,r.strSide||'—');const p=cell(tr,'','play-cell');if(r.ending){const tag=document.createElement('span');tag.className='ending-tag';tag.textContent=r.ending;p.append(tag);}const f=document.createElement('small');f.textContent=r.formation||'';p.append(f);const play=document.createElement('strong');play.textContent=r.play||(r.sign?'Sign '+r.sign:'—');p.append(play);
+ readableCell(tr,(r.inside||'').trim()?'✓':'','inside',r,'check-cell');readableCell(tr,(r.outside||'').trim()||r.coverage?'✓':'','outside',r,'check-cell');readableCell(tr,r.remark||'','remark',r);tr.addEventListener('click',()=>editRecord(r.id));tr.addEventListener('keydown',e=>{if(e.target.closest('button'))return;if(e.key==='Enter'){e.preventDefault();e.stopPropagation();editRecord(r.id);}});body.append(tr);
+ });if(!shown){const tr=document.createElement('tr');tr.className='empty-row';const td=cell(tr,logs.length?'該当する記録がありません':'記録はありません');td.colSpan=7;body.append(tr);}$('count').textContent=logs.length+' plays'+(term?' / '+shown+' found':'');document.querySelectorAll('.series-controls button').forEach(b=>b.disabled=!ready||busy||!logs.length);
+}
+function render(){renderForm();renderLogs();}
+function inputKey(key){
+ if(!ready||busy)return;
+ if(key==='L'||key==='R'){draft.strSide=key;active='sign';}
+ else if(active==='down'&&/^[1-4]$/.test(key))draft.down=key;
+ else if(active==='sign'&&/^\d$/.test(key)){
+  if(draft.sign.length<5){draft.sign+=key;draft.branch='';}
+  else if(!$('cwmBranchInput').hidden&&['1','2'].includes(key))draft.branch=key;
+ }
+ else if(active==='branch'&&['1','2'].includes(key))draft.branch=key;
+ else if(active==='remark'){const el=$('remark'),start=el.selectionStart,end=el.selectionEnd;draft.remark=draft.remark.slice(0,start)+key+draft.remark.slice(end);renderForm();el.focus();el.setSelectionRange(start+key.length,start+key.length);return;}
+ renderForm();
+}
+function backspace(){
+ if(!ready||busy)return;
+ if((active==='sign'||active==='branch')&&draft.branch)draft.branch='';else if(active==='branch'){active='sign';draft.sign=draft.sign.slice(0,-1);}else if(active==='distance')draft.distance='';else if(active==='remark'){const el=$('remark'),s=el.selectionStart,e=el.selectionEnd;const cut=s===e?Math.max(0,s-1):s;draft.remark=draft.remark.slice(0,cut)+draft.remark.slice(e);renderForm();el.focus();el.setSelectionRange(cut,cut);return;}else if(Object.hasOwn(draft,active))draft[active]=draft[active].slice(0,-1);renderForm();
+}
+function enter(){if(!ready||busy)return;if(editing!==null||['sign','remark','branch'].includes(active))saveRecord();else select(order[order.indexOf(active)+1]||'sign');}
+async function saveRecord(){
+ if(!ready||busy)return;const original=logs.find(r=>r.id===editing);if(editing!==null&&!original){storageNotice('編集対象が見つかりません。入力内容を保持しています。');return;}
+ const d=details(),lookup=Object.fromEntries(['formation','play','lookupStatus','resolvedSign','parentSign','cwmBranch','protection','lookupSourceSign'].map(k=>[k,d[k]||'']));
+ const record=original?{...original,...draft,...lookup,updatedAt:new Date().toISOString()}:{...draft,...lookup,q:quarter,series:upcomingSeries(),time:time(),recordedAt:new Date().toISOString()};
+ const next=uiState({draft:original?(parked?.draft||blank()):blank(),active:original?(parked?.active||'down'):'down',editing:null,parked:null,pageKind:null});
+ setBusy(true);await stateWrites;
+ try{if(original){await PlayLogStore.update(record,next);logs[logs.findIndex(r=>r.id===original.id)]=record;}else logs.push(await PlayLogStore.add(record,next));draft={...next.draft};active=next.active;editing=null;parked=null;recordSaveFailed=false;stateFailure=false;storageNotice();showEntry();render();notify(original?'同じプレーを更新しました（時刻は維持）':'プレーを保存しました');requestAnimationFrame(()=>$('tableWrap').scrollTop=$('tableWrap').scrollHeight);}
+ catch(error){recordSaveFailed=true;storageNotice('未保存：保存できませんでした。入力内容は残しています。記録確定を再試行してください。');}
+ finally{setBusy(false);}
+}
+function editRecord(id){
+ if(!ready||busy)return;const row=logs.find(r=>r.id===id);if(!row)return;if(recordSaveFailed&&editing!==id){storageNotice(failureNotice());return;}closeNote();if(editing===null)parked={draft:{...draft},active};editing=id;draft=Object.fromEntries(Object.keys(blank()).map(k=>[k,row[k]||'']));active='sign';full=false;$('app').classList.remove('full');$('toggleTable').textContent='表を拡大';showEntry();renderForm();
+}
+function cancelEdit(){if(!ready||busy)return;draft={...blank(),...(parked?.draft||{})};active=parked?.active||'down';editing=null;parked=null;recordSaveFailed=false;storageNotice();showEntry();renderForm();}
+function showEntry(){pageKind=null;$('observationPage').hidden=true;$('entry').hidden=false;$('log').hidden=false;}
+function openObservation(kind){if(!ready||busy)return;pageKind=kind;$('entry').hidden=true;$('log').hidden=true;$('observationPage').hidden=false;$('observationTitle').textContent=kind==='inside'?'VS INSIDE':'VS OUTSIDE';$('observationTarget').textContent=targetText()+' · DN '+(draft.down||'—')+' / '+(draft.sign||'Sign未入力')+' '+(details().play||'');$('observationText').value=draft[kind];$('observationText').placeholder=kind==='inside'?'Front / stunt / Blitz など':'個別の担当、選択肢にないCoverageなど';$('coverageGroup').hidden=kind!=='outside';document.querySelectorAll('[data-cover]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cover===draft.coverage)));$('saveObservation').textContent=editing!==null?'このプレーを更新':'このプレーを記録';$('observationSaveHint').textContent='戻ると入力途中の内容を保持';persistState();}
+function returnFromObservation(){showEntry();renderForm();}
+async function endSeries(label){
+ if(!ready||busy||!logs.length)return;const r=logs.at(-1);if(!confirm('Series '+(r.series||1)+' / Play '+logs.length+'（'+r.time+'）に「'+label+'」を付けます。\n次の新規プレーから次シリーズになります。'))return;
+ setBusy(true);await stateWrites;const record={...r,series:r.series||1,ending:label};
+ try{await PlayLogStore.update(record,uiState());logs[logs.length-1]=record;render();storageNotice(failureNotice());notify('シリーズ終了：'+label);}catch(error){storageNotice('シリーズ終了を保存できませんでした。元の記録と入力内容は保持しています。再試行してください。');}finally{setBusy(false);}
+}
+async function resetRecords(){
+ if(!ready||busy)return;if(logs.length&&!confirm('CSVファイルを端末に保存し、内容を確認しましたか？\n確認済みの場合のみ「OK」を押してください。'))return;if(!confirm('すべての記録を削除します。この操作は取り消せません。よろしいですか？'))return;
+ setBusy(true);await stateWrites;const next=uiState({draft:blank(),active:'down',editing:null,parked:null,pageKind:null});
+ try{await PlayLogStore.clear(next);logs=[];draft=blank();active='down';editing=null;parked=null;recordSaveFailed=false;stateFailure=false;$('search').value='';showEntry();render();storageNotice();notify('すべての記録を削除しました');}catch(error){storageNotice('リセットできませんでした。記録と入力は残しています。再試行してください。');}finally{setBusy(false);}
+}
+function csvEscape(value){const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;}
+function exportCSV(){if(!ready||busy)return;const columns=['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark','Lookup Status','Resolved Sign','Parent Sign','CWM Branch','Q','Series','Inside','Coverage','Outside','Series End','Protection','Lookup Source Sign'];const rows=logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark,r.lookupStatus||'legacy',r.resolvedSign||'',r.parentSign||'',r.cwmBranch||'',r.q||'',r.series||'',r.inside||'',r.coverage||'',r.outside||'',r.ending||'',r.protection||'',r.lookupSourceSign||'']);const csv='\uFEFF'+[columns,...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+async function importSigns(file){
+ if(!file||!ready||busy)return;setBusy(true);await stateWrites;
+ try{const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());const validated=SignLookup.parse(text);await PlayLogStore.saveMapping({rows:validated.rows,importedAt:new Date().toISOString()});mapping=validated;renderForm();storageNotice(failureNotice());notify('Sign対応CSVを保存しました（'+validated.rows.length+'件）');}catch(error){storageNotice('CSVを適用できません。既存の対応表は保持しています。 '+error.message+' '+failureNotice());}finally{$('signCsvInput').value='';setBusy(false);}
+}
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{quarter=b.dataset.q;renderForm();notify('現在Q：'+quarter+' · 次の新規記録から反映');});
+document.querySelectorAll('[data-field]').forEach(b=>b.onclick=()=>select(b.dataset.field));
+document.querySelectorAll('[data-distance]').forEach(b=>b.onclick=()=>{draft.distance=draft.distance===b.dataset.distance?'':b.dataset.distance;select(draft.distance?'strSide':'distance');});
+document.querySelectorAll('[data-key]').forEach(b=>{b.addEventListener('pointerdown',e=>{if(active==='remark')e.preventDefault();});b.onclick=()=>inputKey(b.dataset.key);});
+$('remark').onfocus=()=>{active='remark';renderForm();};$('remark').oninput=e=>{draft.remark=e.target.value;persistState();};
+$('enter').addEventListener('pointerdown',e=>e.preventDefault());$('backspace').addEventListener('pointerdown',e=>e.preventDefault());$('enter').onclick=enter;$('backspace').onclick=backspace;
+$('cwmBranchInput').onclick=()=>select('branch');$('cancelEdit').onclick=cancelEdit;
+$('insideBtn').onclick=()=>openObservation('inside');$('outsideBtn').onclick=()=>openObservation('outside');$('backToEntry').onclick=returnFromObservation;$('returnWithDraft').onclick=returnFromObservation;$('saveObservation').onclick=saveRecord;$('observationText').oninput=e=>{draft[pageKind]=e.target.value;persistState();};
+document.querySelectorAll('[data-cover]').forEach(b=>b.onclick=()=>{draft.coverage=b.dataset.cover;document.querySelectorAll('[data-cover]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.cover===draft.coverage)));persistState();});
+document.querySelectorAll('[data-ending]').forEach(b=>b.onclick=()=>endSeries(b.dataset.ending));
+$('toggleTable').onclick=()=>{closeNote();full=!full;$('app').classList.toggle('full',full);$('toggleTable').textContent=full?'入力に戻る':'表を拡大';};$('search').oninput=renderLogs;$('exportBtn').onclick=exportCSV;$('resetBtn').onclick=resetRecords;
+$('closeNote').onclick=()=>closeNote(true);
+document.addEventListener('click',e=>{if($('notePopover').hidden||$('notePopover').contains(e.target)||noteAnchor?.contains(e.target))return;closeNote();if(e.target.closest('#logBody tr')&&!e.target.closest('.note-trigger')){e.preventDefault();e.stopPropagation();}},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('notePopover').hidden){e.preventDefault();closeNote(true);}});
+$('tableWrap').addEventListener('scroll',()=>closeNote(),{passive:true});window.addEventListener('resize',()=>closeNote());
+$('importBtn').onclick=()=>{if(ready&&!busy)$('signCsvInput').click();};$('signCsvInput').onchange=e=>importSigns(e.target.files[0]);$('retryStorage').onclick=restoreRecords;
+document.addEventListener('keydown',e=>{
+ if(!ready||busy||e.isComposing||e.keyCode===229||e.metaKey||e.ctrlKey||e.altKey||pageKind||e.target.closest('input, textarea, #notePopover')||e.target.closest('tbody'))return;
+ if(e.target.closest('button')&&!e.target.closest('.keypad'))return;
+ if(e.key==='Enter'){e.preventDefault();enter();}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();select(order[(order.indexOf(active)+1)%order.length]);}else if(/^[0-9LRlr]$/.test(e.key)){e.preventDefault();inputKey(e.key.toUpperCase());}
+});
+$('clock').textContent=time();setInterval(()=>$('clock').textContent=time(),1000);render();restoreRecords();
+
 </script>
 </body>
 </html>

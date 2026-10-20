@@ -91,3 +91,35 @@ test('restored malformed mappings are rejected',()=>{
   assert.throws(()=>validateRows(null),/データ/);
   assert.throws(()=>validateRows([{sign:12345}]),/文字列/);
 });
+
+const passRows=()=>[
+ ['64051','FICTIONAL PASS FORM','<51/52> TEST ROUTES','normal','64051','',''],
+ ['64052','FICTIONAL PASS FORM','<51/52> TEST ROUTES','normal','64052','','']
+];
+test('all five protections resolve a declared pass family, retaining actual Sign and PP',()=>{
+ const mapping=parse(csv(passRows()));
+ for(const pp of ['51','52','53','54','59']){
+  const r=resolve(mapping,'640'+pp);assert.equal(r.formation,'FICTIONAL PASS FORM');assert.equal(r.play,'<'+pp+'> TEST ROUTES');assert.equal(r.protection,pp);
+  assert.equal(r.lookupStatus,['51','52'].includes(pp)?'matched':'pp_common');assert.equal(r.resolvedSign,['51','52'].includes(pp)?'640'+pp:'');
+ }
+ assert.equal(resolve(mapping,'64055').lookupStatus,'unmatched');
+});
+test('an explicit PP-specific record wins over a shared family',()=>{
+ const rows=passRows();rows.push(['64053','EXPLICIT FORM','<53> EXPLICIT ROUTES','normal','64053','','']);
+ const mapping=parse(csv(rows));assert.equal(resolve(mapping,'64053').play,'<53> EXPLICIT ROUTES');assert.equal(resolve(mapping,'64053').resolvedSign,'64053');
+ assert.equal(resolve(mapping,'64054').lookupStatus,'pp_ambiguous');assert.equal(resolve(mapping,'64054').play,'');
+});
+test('numeric prefix and PP-looking suffix alone never identify an ordinary play as a pass',()=>{
+ const rows=passRows().map(r=>{r[2]='ORDINARY RUN';return r;});
+ assert.equal(resolve(parse(csv(rows)),'64053').lookupStatus,'unmatched');
+ const incomplete=passRows().slice(0,1);incomplete[0][2]='<51> TEST ROUTES';assert.equal(resolve(parse(csv(incomplete)),'64053').lookupStatus,'pp_ambiguous');
+});
+test('conflicting Formation, routes or unmarked candidates never assign a shared play',()=>{
+ for(const [column,value] of [[1,'OTHER FORM'],[2,'<51/52> OTHER ROUTES'],[2,'ORDINARY RUN']]){
+  const rows=passRows();rows[1][column]=value;const r=resolve(parse(csv(rows)),'64059');assert.equal(r.lookupStatus,'pp_ambiguous');assert.equal(r.formation,'');assert.equal(r.play,'');assert.equal(r.protection,'59');
+ }
+});
+test('CWM families cannot be borrowed by protection-prefix fallback',()=>{
+ const rows=passRows();rows.push(['64010','CWM FORM','','cwm_parent','64010','',''],['14010','CWM FORM','ONE','cwm_choice','64010(11)','64010','1'],['24010','CWM FORM','TWO','cwm_choice','64010(22)','64010','2']);
+ const mapping=parse(csv(rows));assert.equal(resolve(mapping,'64053').lookupStatus,'pp_ambiguous');assert.equal(resolve(mapping,'64010').lookupStatus,'cwm_pending');assert.equal(resolve(mapping,'14010').play,'ONE');
+});

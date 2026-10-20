@@ -54,21 +54,18 @@ async function fixture(t, {withMapping=true}={}) {
 }
 async function importCSV(page,text=signCSV()){await page.locator('#signCsvInput').setInputFiles({name:'fictional-signs.csv',mimeType:'text/csv',buffer:Buffer.from(text)});await ready(page);}
 async function rows(page) { return page.evaluate(() => PlayLogStore.load()); }
-async function save(page) { await page.locator('#enter').click(); await ready(page); }
+async function save(page) { await page.locator('[data-field=sign]').click(); await page.locator('#enter').click(); await ready(page); }
 async function fillPlay(page) {
-  await page.locator('[data-key="1"]').click();
-  await page.locator('#tab').click();
-  await page.locator('[data-key="1"]').click();
-  await page.locator('[data-key="0"]').click();
-  await page.locator('[data-key="R"]').click();
-  await page.locator('[data-field="sign"]').click();
-  for (const digit of '12345') await page.locator(`[data-key="${digit}"]`).click();
+  await page.locator('[data-field=down]').click();await page.locator('[data-key="1"]').click();
+  await page.locator('[data-distance="10"]').click();await page.locator('[data-key="R"]').click();
+  await typeSign(page,'12345');
   await page.locator('#remark').fill('日本語, "確認"\n次の行');
 }
 async function abortNext(page, method) {
   await page.evaluate(method => {
     const original = IDBObjectStore.prototype[method];
     IDBObjectStore.prototype[method] = function (...args) {
+      if(this.name==='appState')return original.apply(this,args);
       IDBObjectStore.prototype[method] = original;
       const request = original.apply(this, args);
       request.addEventListener('success', () => this.transaction.abort());
@@ -174,8 +171,8 @@ test('CSV download includes blank rows, hidden Sign, latest edits, Japanese BOM 
   assert.match(download.suggestedFilename(), /^sideline_log_\d{4}-\d{2}-\d{2}\.csv$/);
   const bytes = await fs.readFile(await download.path());
   assert.deepEqual([...bytes.subarray(0,3)], [0xef,0xbb,0xbf]);
-  assert.equal(bytes.toString('utf8'), '\uFEFFTime,Down,Distance,Str Side,Sign,Formation,Play,Remark,Lookup Status,Resolved Sign,Parent Sign,CWM Branch\r\n'+
-    `${records[0].time},1,10,R,12345,TRIPS RIGHT,INSIDE ZONE,"更新,日本語 ""注記""\n二行目",matched,12345,,\r\n${records[1].time},,,,,,,,empty,,,`);
+  assert.equal(bytes.toString('utf8'), '\uFEFFTime,Down,Distance,Str Side,Sign,Formation,Play,Remark,Lookup Status,Resolved Sign,Parent Sign,CWM Branch,Q,Series,Inside,Coverage,Outside,Series End,Protection,Lookup Source Sign\r\n'+
+    `${records[0].time},1,10,R,12345,TRIPS RIGHT,INSIDE ZONE,"更新,日本語 ""注記""\n二行目",matched,12345,,,1,1,,,,,,\r\n${records[1].time},,,,,,,,empty,,,,1,1,,,,,,`);
   assert.deepEqual(await rows(page), records);
 });
 
@@ -294,7 +291,7 @@ test('aborted edit retains original stored row, its time, and the unsaved edit f
   await abortNext(page,'put'); await save(page);
   assert.deepEqual(await rows(page),[original]);
   assert.equal(await page.locator('#remark').inputValue(),'未保存の編集');
-  assert.match(await page.locator('#entryState').textContent(),/^EDIT/);
+  assert.match(await page.locator('#target').textContent(),/^編集/);
   await save(page); const [updated]=await rows(page);
   assert.equal(updated.id,original.id); assert.equal(updated.time,original.time); assert.equal(updated.remark,'未保存の編集');
   await page.reload(); await ready(page); assert.deepEqual(await rows(page),[updated]);
@@ -311,22 +308,19 @@ test('aborted reset retains all records and existing draft; reload restores unch
   await page.reload(); await ready(page); assert.deepEqual(await rows(page),original);
 });
 
-test('physical keyboard Enter after keypad focus saves; Tab, deletion, expansion, search and scrolling still work', async t => {
-  const {page} = await fixture(t);
-  await page.locator('[data-key="2"]').click();
-  await page.keyboard.press('Enter'); await ready(page);
+test('physical keyboard Enter navigates and saves; deletion, expansion, search and scrolling still work', async t => {
+  const {page}=await fixture(t);
+  await page.locator('[data-key="2"]').click();await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#distance').evaluate(el=>el.classList.contains('active')),true);assert.equal((await rows(page)).length,0);
+  await page.locator('[data-distance="S"]').click();await page.locator('[data-key="L"]').click();await page.keyboard.press('Enter');await ready(page);
   assert.equal((await rows(page))[0].down,'2');
-  await page.locator('#tab').click();
-  await page.locator('[data-key="7"]').click(); await page.locator('#backspace').click();
+  await page.locator('[data-distance="M"]').click();await page.locator('[data-distance="M"]').click();await page.locator('#backspace').click();
   assert.equal(await page.locator('#value-distance').textContent(),'—');
-  for(let i=0;i<6;i++) await save(page);
+  for(let i=0;i<8;i++)await save(page);
   assert.ok(await page.locator('#tableWrap').evaluate(el=>el.scrollHeight>el.clientHeight));
-  await page.locator('#toggleTable').click();
-  assert.equal(await page.locator('.entry-stage').isVisible(),false);
-  await page.locator('#search').fill('2');
-  await page.locator('#logBody tr[tabindex]').first().click();
-  assert.equal(await page.locator('.entry-stage').isVisible(),true);
-  await page.locator('#cancelEdit').click(); assert.equal(await page.locator('#entryState').textContent(),'NEW PLAY');
+  await page.locator('#toggleTable').click();assert.equal(await page.locator('.entry-stage').isVisible(),false);
+  await page.locator('#search').fill('2');await page.locator('#logBody tr[tabindex]').first().click();assert.equal(await page.locator('.entry-stage').isVisible(),true);
+  await page.locator('#cancelEdit').click();assert.match(await page.locator('#target').textContent(),/^新規/);
 });
 
 test('records survive closing and reopening the browser with the same isolated profile', async () => {
@@ -344,7 +338,7 @@ test('records survive closing and reopening the browser with the same isolated p
   } finally {if(context)await context.close();await fs.rm(profile,{recursive:true,force:true});}
 });
 
-async function typeSign(page,sign){await page.locator('[data-field="sign"]').click();for(const key of sign)await page.locator(`[data-key="${key}"]`).click();}
+async function typeSign(page,sign){await page.locator('[data-field="sign"]').click();while(await page.locator('#value-sign').textContent()!=='—')await page.locator('#backspace').click();for(const key of sign)await page.locator(`[data-key="${key}"]`).click();}
 async function mappingRows(page){return page.evaluate(()=>PlayLogStore.loadMapping());}
 
 test('unloaded CSV never exposes fictional matches; unknown and unloaded signs remain recordable',async t=>{
@@ -454,7 +448,7 @@ test('direct five-digit child input resolves without requesting or appending a b
 test('branch focus reuses the keypad; invalid branches do nothing; deletion removes branch before Sign',async t=>{
   const {page}=await fixture(t);await typeSign(page,'01010');
   await page.locator('[data-key="3"]').click();assert.equal(await page.locator('#value-sign').textContent(),'01010');
-  await page.locator('#tab').click();await page.locator('#cwmBranchInput').click();
+  await page.locator('[data-field=down]').click();await page.locator('#cwmBranchInput').click();
   await page.locator('[data-key="1"]').click();await page.locator('[data-key="2"]').click();
   assert.match(await page.locator('#lookupResult').textContent(),/TEST PLAY TWO/);
   await page.locator('#backspace').click();assert.equal(await page.locator('#value-sign').textContent(),'01010');assert.match(await page.locator('#lookupResult').textContent(),/未確定/);
@@ -533,7 +527,7 @@ test('Phase 1 database upgrade preserves original rows byte-for-byte, IDs and se
     request.onsuccess=()=>{const db=request.result,tx=db.transaction('plays','readwrite');tx.objectStore('plays').put(original);tx.oncomplete=()=>{db.close();resolve();};tx.onabort=()=>reject(tx.error);};
   }),original);
   await page.goto(origin);await ready(page);
-  assert.deepEqual(await rows(page),[original]);assert.equal(await page.evaluate(()=>new Promise(resolve=>{const req=indexedDB.open('sideline-play-logger');req.onsuccess=()=>{resolve(req.result.version);req.result.close();};})),2);
+  assert.deepEqual(await rows(page),[original]);assert.equal(await page.evaluate(()=>new Promise(resolve=>{const req=indexedDB.open('sideline-play-logger');req.onsuccess=()=>{resolve(req.result.version);req.result.close();};})),3);
   await importCSV(page);assert.deepEqual(await rows(page),[original]);
   await page.locator('#logBody tr[tabindex]').click();assert.match(await page.locator('#lookupResult').textContent(),/LEGACY FORMATION.*LEGACY PLAY/);
   await page.locator('#remark').fill('編集');await save(page);const [edited]=await rows(page);assert.equal(edited.formation,'LEGACY FORMATION');assert.equal(edited.play,'LEGACY PLAY');assert.equal(edited.time,original.time);
@@ -553,4 +547,52 @@ test('CSV replacement never clears a failed-record draft or its unsaved warning'
   await importCSV(page);assert.match(await page.locator('#storageMessage').textContent(),/未保存/);
   assert.equal(await page.locator('#remark').inputValue(),'日本語, "確認"\n次の行');assert.deepEqual(await rows(page),[]);
   await save(page);assert.equal((await rows(page)).length,1);assert.equal(await page.locator('#storageNotice').isVisible(),false);
+});
+
+test('Q, categorical distance and automatic series persist; editing never moves an old play',async t=>{
+ const {page}=await fixture(t);
+ await page.locator('[data-key="1"]').click();await page.locator('#enter').click();assert.equal((await rows(page)).length,0);
+ await page.locator('[data-distance="M"]').click();assert.equal(await page.locator('[data-field=strSide]').getAttribute('aria-pressed'),'true');await page.locator('[data-key="L"]').click();assert.equal(await page.locator('[data-field=sign]').getAttribute('aria-pressed'),'true');await save(page);
+ const [first]=await rows(page);assert.equal(first.q,'1');assert.equal(first.series,1);assert.equal(first.distance,'M');
+ page.once('dialog',d=>d.dismiss());await page.locator('[data-ending=Punt]').click();assert.equal((await rows(page))[0].ending,undefined);
+ page.once('dialog',d=>d.accept());await page.locator('[data-ending=Punt]').click();await ready(page);assert.equal((await rows(page)).length,1);
+ await page.locator('[data-q="2"]').click();await save(page);let records=await rows(page);assert.deepEqual(records.map(r=>[r.q,r.series]),[['1',1],['2',2]]);assert.equal(await page.locator('tr.q-change').count(),1);assert.equal(await page.locator('tr[data-ending=Punt]').count(),1);
+ await page.reload();await ready(page);assert.deepEqual(await rows(page),records);assert.equal(await page.locator('[data-q="2"]').getAttribute('aria-pressed'),'true');
+ await page.locator('#logBody tr[tabindex]').first().click();await page.locator('#remark').fill('終了後の追記');await page.locator('[data-distance="L"]').click();await page.locator('[data-key="R"]').click();await page.locator('[data-field=down]').click();await page.locator('#enter').click();await ready(page);
+ records=await rows(page);assert.equal(records.length,2);assert.equal(records[0].id,first.id);assert.equal(records[0].q,'1');assert.equal(records[0].series,1);assert.equal(records[0].ending,'Punt');assert.equal(records[0].time,first.time);assert.equal(records[0].distance,'L');
+});
+
+test('series-end abort retains records/draft; retry persists label without a phantom play',async t=>{
+ const {page}=await fixture(t);await save(page);const before=await rows(page);await page.locator('#remark').fill('次の準備');await abortNext(page,'put');page.once('dialog',d=>d.accept());await page.locator('[data-ending=TD]').click();await ready(page);
+ assert.deepEqual(await rows(page),before);assert.equal(await page.locator('#remark').inputValue(),'次の準備');assert.match(await page.locator('#storageMessage').textContent(),/シリーズ終了.*保存できません/);
+ page.once('dialog',d=>d.accept());await page.locator('[data-ending=TD]').click();await ready(page);await page.reload();await ready(page);assert.equal((await rows(page)).length,1);assert.equal((await rows(page))[0].ending,'TD');await save(page);assert.equal((await rows(page))[1].series,2);
+});
+
+test('draft, parked next play and IN/OUT editing restore and commit atomically',async t=>{
+ const {page}=await fixture(t);await save(page);const [first]=await rows(page);await typeSign(page,'12345');await page.locator('#remark').fill('次のプレー準備');await page.locator('#logBody tr[tabindex]').click();await page.locator('#insideBtn').click();await page.locator('#observationText').fill('架空Front\nStunt');await page.evaluate(()=>stateWrites);
+ await page.reload();await ready(page);assert.equal(await page.locator('#observationPage').isVisible(),true);assert.equal(await page.locator('#observationText').inputValue(),'架空Front\nStunt');await page.locator('#backToEntry').click();await page.locator('#outsideBtn').click();await page.locator('[data-cover="0"]').click();await page.locator('#observationText').fill('架空の担当');await page.locator('#saveObservation').click();await ready(page);
+ const [r]=await rows(page);assert.equal(r.id,first.id);assert.equal(r.time,first.time);assert.equal(r.inside,'架空Front\nStunt');assert.equal(r.coverage,'0');assert.equal(r.outside,'架空の担当');assert.equal(await page.locator('#value-sign').innerText(),'12345');assert.equal(await page.locator('#remark').inputValue(),'次のプレー準備');
+ await page.reload();await ready(page);assert.equal(await page.locator('#value-sign').innerText(),'12345');await save(page);await page.reload();await ready(page);assert.equal((await rows(page)).length,2);assert.equal(await page.locator('#value-sign').innerText(),'—');
+});
+
+test('failed save keeps durable draft; successful retry clears draft in the same transaction',async t=>{
+ const {page}=await fixture(t);await fillPlay(page);await abortNext(page,'add');await save(page);await page.reload();await ready(page);assert.equal((await rows(page)).length,0);assert.equal(await page.locator('#value-sign').innerText(),'12345');assert.equal(await page.locator('#remark').inputValue(),'日本語, "確認"\n次の行');await save(page);await page.reload();await ready(page);assert.equal((await rows(page)).length,1);assert.equal(await page.locator('#remark').inputValue(),'');
+});
+
+test('Phase 2 database upgrades without inventing Q/series or overwriting numeric distance and lookup',async t=>{
+ const context=await browser.newContext();t.after(()=>context.close());const page=await context.newPage();await page.goto(origin+'/blank');
+ const record={id:9,time:'10:00:00',recordedAt:'2026-01-01T01:00:00.000Z',down:'3',distance:'7',strSide:'R',sign:'64053',branch:'',formation:'ADOPTED',play:'MANUALLY ADOPTED',remark:'旧メモ',lookupStatus:'unmatched'};
+ await page.evaluate(({record,records})=>new Promise((resolve,reject)=>{const req=indexedDB.open('sideline-play-logger',2);req.onupgradeneeded=()=>{req.result.createObjectStore('plays',{keyPath:'id',autoIncrement:true});req.result.createObjectStore('signMappings',{keyPath:'id'});};req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result,tx=db.transaction(['plays','signMappings'],'readwrite');tx.objectStore('plays').put(record);tx.objectStore('signMappings').put({id:'current',rows:records});tx.oncomplete=()=>{db.close();resolve();};};}),{record,records:fixtureRecords.map(r=>Object.fromEntries(['sign','formation','play','record_type','sign_raw','parent_sign','branch'].map((k,i)=>[k,r[i]])))});
+ await page.goto(origin);await ready(page);assert.deepEqual(await rows(page),[record]);await page.locator('#logBody tr[tabindex]').click();assert.equal(await page.locator('#value-distance').isVisible(),true);assert.equal(await page.locator('#value-distance').innerText(),'7');await page.locator('#remark').fill('旧メモ追記');await save(page);const [edited]=await rows(page);assert.equal(edited.q,undefined);assert.equal(edited.series,undefined);assert.equal(edited.play,record.play);assert.equal(edited.distance,'7');assert.equal(edited.time,record.time);
+});
+
+test('PP common match stores actual Sign/protection and survives later CSV changes and edits',async t=>{
+ const {page}=await fixture(t);const passes=[['64051','FAKE PASS','<51/52> FAKE ROUTES','normal','64051','',''],['64052','FAKE PASS','<51/52> FAKE ROUTES','normal','64052','','']];await importCSV(page,signCSV(passes));
+ for(const pp of ['51','52','53','54','59']){await typeSign(page,'640'+pp);await save(page);}const original=await rows(page);assert.deepEqual(original.map(r=>r.protection),['51','52','53','54','59']);assert.equal(original[2].sign,'64053');assert.equal(original[2].resolvedSign,'');assert.equal(original[2].play,'<53> FAKE ROUTES');
+ await importCSV(page,signCSV(passes.map(r=>r.map((v,i)=>i===2?v.replace('FAKE ROUTES','CHANGED'):v))));await page.locator('#logBody tr[tabindex]').nth(2).click();await page.locator('#remark').fill('保持');await save(page);let after=await rows(page);assert.equal(after[2].play,original[2].play);assert.equal(after[2].protection,'53');assert.equal(after[2].lookupStatus,'pp_common');await page.reload();await ready(page);assert.deepEqual(await rows(page),after);
+ const download=page.waitForEvent('download');await page.locator('#exportBtn').click();const text=await fs.readFile(await(await download).path(),'utf8');assert.match(text,/64053,FAKE PASS,<53> FAKE ROUTES,保持,pp_common/);assert.match(text,/Protection,Lookup Source Sign/);
+});
+
+test('reset clears durable drafts/series but keeps Q and mapping; cancelled reset preserves both',async t=>{
+ const {page}=await fixture(t);await save(page);await page.locator('[data-q="OT"]').click();await page.locator('#remark').fill('下書き');await page.evaluate(()=>stateWrites);await confirmReset(page,[false]);await page.reload();await ready(page);assert.equal(await page.locator('#remark').inputValue(),'下書き');await confirmReset(page,[true,true]);await page.reload();await ready(page);assert.equal((await rows(page)).length,0);assert.equal(await page.locator('#remark').inputValue(),'');assert.equal(await page.locator('[data-q="OT"]').getAttribute('aria-pressed'),'true');assert.equal((await mappingRows(page)).rows.length,7);await save(page);assert.equal((await rows(page))[0].series,1);
 });

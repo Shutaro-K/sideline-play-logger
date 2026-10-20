@@ -97,18 +97,39 @@
   }
 
   function resolve(mapping, sign, branch = '') {
-    const base = {formation: '', play: '', resolvedSign: '', parentSign: '', cwmBranch: ''};
+    const base = {formation: '', play: '', resolvedSign: '', parentSign: '', cwmBranch: '', protection: '', lookupSourceSign: ''};
     if (!sign) return {...base, lookupStatus: 'empty'};
     if (!mapping) return {...base, lookupStatus: 'not_loaded'};
     const row = mapping.bySign.get(sign);
-    if (!row) return {...base, lookupStatus: 'unmatched'};
+    if (!row) {
+      const pp=sign.slice(-2),prefix=sign.slice(0,3);
+      if (!digitSign(sign)||!PROTECTIONS.includes(pp)) return {...base, lookupStatus:'unmatched'};
+      const candidates=mapping.rows.filter(r=>r.sign.startsWith(prefix)&&PROTECTIONS.includes(r.sign.slice(-2)));
+      const passes=candidates.map(r=>passDetails(r));
+      // Explicit protection notation identifies pass families; a numeric prefix alone never does.
+      if (!passes.some(Boolean)) return {...base, lookupStatus:'unmatched'};
+      if (mapping.rows.some(r=>r.sign.startsWith(prefix)&&r.record_type!=='normal')||passes.some(p=>!p)||new Set(candidates.map((r,i)=>JSON.stringify([r.formation,passes[i]?.common]))).size!==1) {
+        return {...base, protection:pp, lookupStatus:'pp_ambiguous'};
+      }
+      if (!passes.some(p=>p.allowed.includes('51')&&p.allowed.includes('52'))&&new Set(candidates.map(r=>r.sign.slice(-2))).size<2) return {...base, protection:pp, lookupStatus:'pp_ambiguous'};
+      return {...base, formation:candidates[0].formation, play:'<'+pp+'> '+passes[0].common, protection:pp, lookupSourceSign:candidates.map(r=>r.sign).sort()[0], lookupStatus:'pp_common'};
+    }
     if (row.record_type === 'cwm_parent') {
       const child = mapping.children.get(sign).get(branch);
       if (!child) return {...base, formation: row.formation, play: 'CWM（枝番未確定）', parentSign: sign, lookupStatus: 'cwm_pending'};
       return {...base, formation: child.formation, play: child.play, resolvedSign: child.sign, parentSign: sign, cwmBranch: branch, lookupStatus: 'cwm_resolved'};
     }
-    return {...base, formation: row.formation, play: row.play, resolvedSign: sign,
+    const pass=passDetails(row),pp=pass?sign.slice(-2):'';
+    return {...base, formation: row.formation, play: pass?'<'+pp+'> '+pass.common:row.play, resolvedSign: sign, protection:pp,
       parentSign: row.parent_sign, cwmBranch: row.branch, lookupStatus: row.record_type === 'normal' ? 'matched' : 'cwm_resolved'};
+  }
+
+  const PROTECTIONS=['51','52','53','54','59'];
+  function passDetails(row) {
+    if (row.record_type!=='normal') return null;
+    const match=/^<((?:51|52|53|54|59)(?:\/(?:51|52|53|54|59))*)>\s*(\S[\s\S]*)$/.exec(row.play);
+    if (!match||!match[1].split('/').includes(row.sign.slice(-2))) return null;
+    return {allowed:match[1].split('/'),common:match[2]};
   }
 
   const api = {COLUMNS, parseCSV, validateRows, parse, resolve};
