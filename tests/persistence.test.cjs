@@ -569,8 +569,8 @@ test('series-end abort retains records/draft; retry persists label without a pha
 });
 
 test('draft, parked next play and IN/OUT editing restore and commit atomically',async t=>{
- const {page}=await fixture(t);await save(page);const [first]=await rows(page);await typeSign(page,'12345');await page.locator('#remark').fill('次のプレー準備');await page.locator('#logBody tr[tabindex]').click();await page.locator('#insideBtn').click();await page.locator('#observationText').fill('架空Front\nStunt');await page.evaluate(()=>stateWrites);
- await page.reload();await ready(page);assert.equal(await page.locator('#observationPage').isVisible(),true);assert.equal(await page.locator('#observationText').inputValue(),'架空Front\nStunt');await page.locator('#backToEntry').click();await page.locator('#outsideBtn').click();await page.locator('[data-cover="0"]').click();await page.locator('#observationText').fill('架空の担当');await page.locator('#saveObservation').click();await ready(page);
+ const {page}=await fixture(t);await save(page);const [first]=await rows(page);await typeSign(page,'12345');await page.locator('#remark').fill('次のプレー準備');await page.locator('#logBody tr[tabindex]').click();await page.locator('#observationsBtn').click();await page.locator('#insideText').fill('架空Front\nStunt');await page.evaluate(()=>stateWrites);
+ await page.reload();await ready(page);assert.equal(await page.locator('#observationPage').isVisible(),true);assert.equal(await page.locator('#insideText').inputValue(),'架空Front\nStunt');await page.locator('#backToEntry').click();await page.locator('#observationsBtn').click();await page.locator('[data-cover="0"]').click();await page.locator('#outsideText').fill('架空の担当');await page.locator('#saveObservation').click();await ready(page);
  const [r]=await rows(page);assert.equal(r.id,first.id);assert.equal(r.time,first.time);assert.equal(r.inside,'架空Front\nStunt');assert.equal(r.coverage,'0');assert.equal(r.outside,'架空の担当');assert.equal(await page.locator('#value-sign').innerText(),'12345');assert.equal(await page.locator('#remark').inputValue(),'次のプレー準備');
  await page.reload();await ready(page);assert.equal(await page.locator('#value-sign').innerText(),'12345');await save(page);await page.reload();await ready(page);assert.equal((await rows(page)).length,2);assert.equal(await page.locator('#value-sign').innerText(),'—');
 });
@@ -595,4 +595,78 @@ test('PP common match stores actual Sign/protection and survives later CSV chang
 
 test('reset clears durable drafts/series but keeps Q and mapping; cancelled reset preserves both',async t=>{
  const {page}=await fixture(t);await save(page);await page.locator('[data-q="OT"]').click();await page.locator('#remark').fill('下書き');await page.evaluate(()=>stateWrites);await confirmReset(page,[false]);await page.reload();await ready(page);assert.equal(await page.locator('#remark').inputValue(),'下書き');await confirmReset(page,[true,true]);await page.reload();await ready(page);assert.equal((await rows(page)).length,0);assert.equal(await page.locator('#remark').inputValue(),'');assert.equal(await page.locator('[data-q="OT"]').getAttribute('aria-pressed'),'true');assert.equal((await mappingRows(page)).rows.length,7);await save(page);assert.equal((await rows(page))[0].series,1);
+});
+
+test('one IN/OUT page keeps both inputs, independent checks and CSV fields',async t=>{
+ const {page}=await fixture(t);
+ assert.equal(await page.locator('.notes .observation').count(),1);
+ for(const [inside,outside,coverage] of [['架空Front\nStunt','',''],['','架空の担当','0'],['  ','\n','']]){
+  await page.locator('#observationsBtn').click();
+  assert.equal(await page.locator('#insideText').isVisible(),true);
+  assert.equal(await page.locator('#outsideText').isVisible(),true);
+  await page.locator('#insideText').fill(inside);await page.locator('#outsideText').fill(outside);
+  await page.locator(`[data-cover="${coverage}"]`).click();
+  await page.locator('#returnWithDraft').click();
+  assert.equal(await page.locator('#insideCheck').textContent(),inside.trim()?'✓':'');
+  assert.equal(await page.locator('#outsideCheck').textContent(),outside.trim()||coverage?'✓':'');
+  await page.locator('#observationsBtn').click();await page.evaluate(()=>stateWrites);
+  await page.reload();await ready(page);
+  assert.equal(await page.locator('#insideText').inputValue(),inside);
+  assert.equal(await page.locator('#outsideText').inputValue(),outside);
+  await page.locator('#saveObservation').click();await ready(page);
+ }
+ const original=await rows(page);
+ assert.deepEqual(original.map(r=>[r.inside,r.outside,r.coverage]),[['架空Front\nStunt','',''],['','架空の担当','0'],['  ','\n','']]);
+ assert.deepEqual(await page.locator('#logBody tr[tabindex]').evaluateAll(es=>es.map(e=>[...e.querySelectorAll('.check-cell .note-summary')].map(c=>c.textContent))),[['✓',''],['','✓'],['','']]);
+ await page.locator('#logBody tr[tabindex]').first().click();await page.locator('#observationsBtn').click();
+ await page.locator('#insideText').fill('');await page.locator('#outsideText').fill('OUTへの追記');
+ await page.locator('#saveObservation').click();await ready(page);await page.reload();await ready(page);
+ const edited=await rows(page);assert.equal(edited.length,3);assert.equal(edited[0].id,original[0].id);assert.equal(edited[0].time,original[0].time);
+ assert.deepEqual([edited[0].inside,edited[0].outside],['','OUTへの追記']);
+ assert.deepEqual(await page.locator('#logBody tr[tabindex]').first().locator('.check-cell .note-summary').allTextContents(),['','✓']);
+ const downloading=page.waitForEvent('download');await page.locator('#exportBtn').click();
+ const csv=await fs.readFile(await(await downloading).path(),'utf8');assert.match(csv,/Inside,Coverage,Outside/);assert.match(csv,/OUTへの追記/);assert.match(csv,/架空の担当/);
+});
+
+for(const pageKind of ['inside','outside'])test(`legacy ${pageKind} draft opens the combined page without losing either note`,async t=>{
+ const {page}=await fixture(t);await page.evaluate(()=>stateWrites);
+ await page.evaluate(async pageKind=>{await PlayLogStore.saveState({version:1,draft:{...blank(),inside:'旧INの下書き',outside:'旧OUTの下書き',coverage:'QH'},active:'sign',quarter:'2',editing:null,parked:null,pageKind});},pageKind);
+ await page.reload();await ready(page);assert.equal(await page.locator('#observationPage').isVisible(),true);
+ assert.equal(await page.locator('#insideText').inputValue(),'旧INの下書き');assert.equal(await page.locator('#outsideText').inputValue(),'旧OUTの下書き');
+ assert.equal(await page.locator('[data-cover=QH]').getAttribute('aria-pressed'),'true');
+ await page.locator('#saveObservation').click();await ready(page);const [r]=await rows(page);
+ assert.deepEqual([r.inside,r.outside,r.coverage,r.q],['旧INの下書き','旧OUTの下書き','QH','2']);
+});
+
+for(const viewport of [{width:1024,height:768},{width:1180,height:820},{width:1366,height:1024},{width:1056,height:651},{width:1056,height:650},{width:922,height:612},{width:820,height:512},{width:740,height:420}])test(`inputs fit the ${viewport.width}x${viewport.height} window without hiding Remark or IN/OUT`,async t=>{
+ const {page}=await fixture(t);await page.setViewportSize(viewport);
+ const layout=await page.evaluate(()=>{
+  const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
+  return {entry:rect('#entry'),lookup:rect('.lookup'),notes:rect('.notes'),remark:rect('#remark'),button:rect('#observationsBtn'),log:rect('#log'),toolbar:rect('.toolbar'),series:rect('.series-controls'),actions:rect('.log-actions'),formScroll:document.querySelector('.form').scrollHeight-document.querySelector('.form').clientHeight,keyHeights:[...document.querySelectorAll('.key')].map(e=>e.getBoundingClientRect().height)};
+ });
+ assert(layout.formScroll<=1,'All input controls fit without scrolling the form');
+ for(const part of ['lookup','notes','remark','button']){
+  const r=layout[part];assert(r.x>=0&&r.right<=viewport.width&&r.y>=layout.entry.y&&r.bottom<=layout.log.y,part+' stays in the input area');
+ }
+ assert.equal(layout.lookup.x,layout.notes.x);assert.equal(layout.lookup.width,layout.notes.width,'The full PLAY width is retained for the notes row');
+ assert(layout.lookup.height>=65);assert(layout.remark.height>=44);assert(layout.button.height>=44);assert(layout.keyHeights.every(h=>h>=44),'Keypad retains usable targets');
+ assert(layout.series.right<=layout.actions.x,'Toolbar controls do not overlap');assert.equal(layout.toolbar.height,30);
+ assert(layout.log.bottom<=viewport.height+1);assert(layout.lookup.width>viewport.width*.6,'PLAY keeps the wide left column');
+ await page.locator('#observationsBtn').click();
+ for(const selector of ['#insideText','#outsideText','#saveObservation']){
+  const r=await page.locator(selector).boundingBox();assert(r&&r.y>=0&&r.y+r.height<=viewport.height+1,selector+' fits on the combined page');
+ }
+});
+
+test('log Formation and Play share a larger font and color without raising short rows',async t=>{
+ const {page}=await fixture(t);await fillPlay(page);await save(page);
+ for(const expanded of [false,true]){
+  if(expanded)await page.locator('#toggleTable').click();
+  const styles=await page.locator('.play-cell').evaluate(e=>{
+   const props=el=>{const s=getComputedStyle(el);return {size:s.fontSize,color:s.color,weight:s.fontWeight};};
+   return {formation:props(e.querySelector('small')),play:props(e.querySelector('strong')),other:props(e.previousElementSibling),height:e.parentElement.getBoundingClientRect().height};
+  });
+  assert.deepEqual(styles.formation,styles.play);assert.equal(styles.play.size,expanded?'16px':'15px');
+  assert.equal(styles.other.size,expanded?'14px':'13px');assert.equal(styles.height,expanded?53:40);
+ }
 });
