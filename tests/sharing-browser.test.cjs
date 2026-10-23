@@ -14,13 +14,16 @@ async function fixture(t){
  return {input,viewer};
 }
 test('admin login accepts a short ID and password, rejecting wrong credentials before opening settings',async t=>{
- const context=await browser.newContext();t.after(()=>context.close());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const context=await browser.newContext();t.after(()=>context.close());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.location().url.endsWith('/favicon.ico')&&!m.text().includes('401'))errors.push(m.text());});
  await page.goto(env.origin);await ready(page);await page.locator('#sharingBtn').click();
  assert.equal(await page.locator('#adminId').getAttribute('type'),'text');
+ await page.locator('#adminId').fill('invalid@id');assert.equal(await page.locator('#adminId').evaluate(e=>e.checkValidity()),false);
  await page.locator('#adminId').fill('fixture-admin');await page.locator('#adminPassword').fill('wrong');await page.locator('#adminLogin button').click();
  await page.waitForFunction(()=>document.getElementById('shareMessage').textContent.includes('IDまたはPW'));
  assert.equal(await page.locator('#shareSettings').isVisible(),false);
  await page.locator('#adminPassword').fill('short');await page.locator('#adminLogin button').click();await page.locator('#shareSettings').waitFor({state:'visible'});
+ await page.locator('#newViewerId').fill('invalid@id');assert.equal(await page.locator('#newViewerId').evaluate(e=>e.checkValidity()),false);
+ await page.locator('#newViewerId').fill('fixture-game_id');assert.equal(await page.locator('#newViewerId').evaluate(e=>e.checkValidity()),true);
  assert.equal(await page.locator('#adminPassword').inputValue(),'');assert.deepEqual(errors,[]);
 });
 test('two devices share only committed records; viewer has the same table and live note popovers',async t=>{
