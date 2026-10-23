@@ -20,7 +20,7 @@ before(async () => {
   server = http.createServer(async (req, res) => {
     if(req.url==='/blank'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><title>Test setup</title>');return;}
     const requested = req.url.split('?')[0].slice(1);
-    const filename = ['storage.js','sign-lookup.js'].includes(requested) ? requested : 'index.html';
+    const filename = ['storage.js','sign-lookup.js','sharing.js','sharing-config.js'].includes(requested) ? requested : 'index.html';
     try {
       res.setHeader('Content-Type', filename.endsWith('.js') ? 'text/javascript' : 'text/html');
       res.end(await fs.readFile(path.join(root, filename)));
@@ -527,7 +527,7 @@ test('Phase 1 database upgrade preserves original rows byte-for-byte, IDs and se
     request.onsuccess=()=>{const db=request.result,tx=db.transaction('plays','readwrite');tx.objectStore('plays').put(original);tx.oncomplete=()=>{db.close();resolve();};tx.onabort=()=>reject(tx.error);};
   }),original);
   await page.goto(origin);await ready(page);
-  assert.deepEqual(await rows(page),[original]);assert.equal(await page.evaluate(()=>new Promise(resolve=>{const req=indexedDB.open('sideline-play-logger');req.onsuccess=()=>{resolve(req.result.version);req.result.close();};})),3);
+  assert.deepEqual(await rows(page),[original]);assert.equal(await page.evaluate(()=>new Promise(resolve=>{const req=indexedDB.open('sideline-play-logger');req.onsuccess=()=>{resolve(req.result.version);req.result.close();};})),4);
   await importCSV(page);assert.deepEqual(await rows(page),[original]);
   await page.locator('#logBody tr[tabindex]').click();assert.match(await page.locator('#lookupResult').textContent(),/LEGACY FORMATION.*LEGACY PLAY/);
   await page.locator('#remark').fill('編集');await save(page);const [edited]=await rows(page);assert.equal(edited.formation,'LEGACY FORMATION');assert.equal(edited.play,'LEGACY PLAY');assert.equal(edited.time,original.time);

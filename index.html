@@ -19,13 +19,16 @@
 /* Reading details in the expanded log does not enter edit mode. */
 .note-trigger{display:none}.full .note-cell{padding:0}.full .note-summary{display:none}.full .note-trigger{display:block;width:100%;min-height:52px;border:0;border-radius:0;background:transparent;padding:10px 6px;text-align:inherit;font:inherit;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.full .note-trigger:hover,.full .note-trigger[aria-expanded=true]{background:#ffffff80;box-shadow:inset 0 0 0 2px #5686b2}.note-popover{position:fixed;z-index:20;display:flex;flex-direction:column;width:min(380px,calc(100vw - 24px));max-height:min(340px,calc(100dvh - 24px));background:#fff;border:1px solid #aabecf;border-radius:9px;box-shadow:0 9px 30px #132d4c2b;color:var(--ink)}.note-popover::before{content:"";position:absolute;width:12px;height:12px;background:white;left:var(--arrow-x,24px);top:-7px;transform:rotate(45deg);border-left:1px solid #aabecf;border-top:1px solid #aabecf}.note-popover[data-placement=above]::before{top:auto;bottom:-7px;transform:rotate(225deg)}.note-popover[data-placement=right]::before{left:-7px;top:var(--arrow-y,24px);transform:rotate(-45deg)}.note-popover[data-placement=left]::before{left:auto;right:-7px;top:var(--arrow-y,24px);transform:rotate(135deg)}.note-header{display:flex;align-items:center;gap:10px;padding:5px 10px 4px 13px;flex:none;border-bottom:1px solid #e4eaf0}.note-header button{margin-left:auto;border:0;background:transparent;width:36px;height:32px;font-size:23px;color:#6c8193;padding:0}.note-meta{font-size:11px;color:var(--muted);min-width:0}.note-content{padding:12px 13px;font-size:15px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;overscroll-behavior:contain;min-height:0;-webkit-user-select:text;user-select:text}
 #storageNotice{position:relative;top:auto;left:auto;right:auto;flex:none;margin:4px 8px 0;max-height:88px;overflow:auto}.form{overflow:auto}
+
+/* Sharing adds an optional login/settings surface without changing the entry grid. */
+.sharing-status{font-size:12px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sharing-warning{background:#fff0d6!important;color:#704b16!important;border-color:#d6a659!important}.viewer .quarter,.viewer #importBtn,.viewer #sharingBtn,.viewer .entry,.viewer .series-controls,.viewer #resetBtn,.viewer #exportBtn,.viewer #toggleTable{display:none!important}.viewer .top-right{width:100%}.viewer #viewerStatus{margin-right:auto}.viewer tbody tr{cursor:default}.viewer .log-heading{display:block}.viewer #viewerLogout{height:32px;padding:0 10px;background:#324d68;color:white}.share-dialog{width:min(470px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #b4c5d5;border-radius:10px;padding:20px;color:var(--ink);background:#f7f9fc}.share-dialog::backdrop{background:#142b4266}.share-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}.share-head h2{font-size:20px;margin:0;flex:1}.share-head button{height:36px;width:36px;font-size:22px}.share-dialog form,.share-fields{display:flex;flex-direction:column;gap:12px}.share-dialog label{display:flex;flex-direction:column;gap:5px;font-size:13px}.share-dialog input:not([type=checkbox]){width:100%;height:42px;padding:7px;border:1px solid #c4d3e0;border-radius:6px;background:white}.share-dialog button{min-height:38px;padding:6px 12px}.share-primary{background:var(--blue);color:white;border-color:var(--blue)}.share-dialog p{font-size:13px;line-height:1.6}.share-message{white-space:pre-wrap;margin:12px 0;color:#70501e}.share-dialog .takeover{display:flex;flex-direction:row;align-items:flex-start}.share-actions{display:flex;gap:8px;flex-wrap:wrap}.share-dialog small{font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
 <div class="app" id="app">
   <header class="top topbar">
     <div class="quarter" role="group" aria-label="現在のQ"><b>Q</b><button class="q" data-q="1" aria-pressed="true">1</button><button class="q" data-q="2" aria-pressed="false">2</button><button class="q" data-q="3" aria-pressed="false">3</button><button class="q" data-q="4" aria-pressed="false">4</button><button class="q" data-q="OT" aria-pressed="false">OT</button></div>
-    <div class="top-right"><button class="import" id="importBtn">CSV読込</button><input id="signCsvInput" type="file" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time></div>
+    <div class="top-right"><span class="sharing-status" id="viewerStatus" role="status" hidden></span><button id="viewerLogout" hidden>ログアウト</button><button class="import" id="sharingBtn" aria-live="polite">共有OFF</button><button class="import" id="importBtn">CSV読込</button><input id="signCsvInput" type="file" accept=".csv,text/csv" hidden><time class="clock" id="clock">--:--:--</time></div>
   </header>
 <div class="error" id="storageNotice" role="status" aria-live="polite" hidden><span id="storageMessage"></span><button id="retryStorage" hidden>復元を再試行</button></div>
   <main class="entry entry-stage" id="entry">
@@ -47,10 +50,13 @@
 </div>
 <aside class="note-popover" id="notePopover" role="dialog" aria-modal="false" aria-labelledby="noteTitle" hidden><strong id="noteTitle" hidden></strong><div class="note-header"><div class="note-meta" id="noteMeta"></div><button id="closeNote" aria-label="吹き出しを閉じる">×</button></div><div class="note-content" id="noteContent"></div></aside>
 <div class="toast" id="toast" role="status" hidden></div>
-<script src="storage.js"></script><script src="sign-lookup.js"></script>
+<dialog class="share-dialog" id="sharingDialog" aria-labelledby="sharingTitle"><div class="share-head"><h2 id="sharingTitle">閲覧共有</h2><button id="closeSharing" aria-label="共有設定を閉じる">×</button></div><p id="sharingUnavailable" hidden>共有先の接続設定がまだ完了していません。記録はこの端末内に保存されます。</p><form id="adminLogin" hidden><p>共有を管理する本人専用のログインです。</p><label>管理者ID<input id="adminId" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[A-Za-z0-9_-]{1,40}" maxlength="40" required></label><label>PW<input id="adminPassword" type="password" autocomplete="current-password" required maxlength="128"></label><button class="share-primary" type="submit">管理者ログイン</button></form><section id="shareSettings" hidden><form id="viewerSettings"><p id="shareCurrent"></p><label>試合共通の閲覧ID<input id="newViewerId" pattern="[A-Za-z0-9_-]{4,40}" minlength="4" maxlength="40" autocomplete="off" required></label><label>閲覧PW<input id="newViewerPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label><small>ID：半角英数字・_・- の4〜40文字。PW：12文字以上。更新すると以前の閲覧ログインは無効になります。</small><label class="takeover" id="takeoverLabel" hidden><input id="takeover" type="checkbox">この端末を記録端末にする（共有表をこの端末の記録に置き換えます）</label><button class="share-primary" type="submit">設定して共有する</button></form><div class="share-fields" style="margin-top:14px"><label>閲覧用URL<input id="viewerLink" readonly aria-label="閲覧用URL"></label><div class="share-actions"><button id="copyViewerLink">URLをコピー</button><button id="stopSharing">共有を停止</button><button id="adminLogout">管理者ログアウト</button></div></div></section><p class="share-message" id="shareMessage" role="status"></p></dialog>
+<dialog class="share-dialog" id="viewerLoginDialog" aria-labelledby="viewerLoginTitle"><div class="share-head"><h2 id="viewerLoginTitle">PLAY LOG 閲覧</h2></div><form id="viewerLogin"><label>試合の閲覧ID<input id="viewerId" autocomplete="username" required maxlength="40"></label><label>PW<input id="viewerPassword" type="password" autocomplete="current-password" required maxlength="128"></label><button class="share-primary" type="submit" id="viewerLoginSubmit">閲覧する</button></form><p class="share-message" id="viewerLoginMessage" role="status"></p></dialog>
+<script src="storage.js"></script><script src="sign-lookup.js"></script><script src="sharing-config.js"></script><script src="sharing.js"></script>
 <script>
 
 'use strict';
+const isViewer=LoggerSharing.viewer;
 const $=id=>document.getElementById(id),order=['down','distance','strSide','sign','remark'];
 const blank=()=>({down:'',distance:'',strSide:'',sign:'',branch:'',remark:'',inside:'',outside:'',coverage:''});
 const quarters=['1','2','3','4','OT'],distances=['S','M','L','10','10+'];
@@ -81,7 +87,7 @@ async function restoreRecords(){
 function details(){const row=logs.find(r=>r.id===editing);return row&&row.sign===draft.sign&&(row.branch||'')===draft.branch?{...row,lookupStatus:row.lookupStatus||'legacy'}:SignLookup.resolve(mapping,draft.sign,draft.branch);}
 function upcomingSeries(){const last=logs.at(-1);return last?(last.series||1)+(last.ending?1:0):1;}
 function targetText(){const r=logs.find(r=>r.id===editing);return r?'編集 · Series '+(r.series||'—')+' / Play '+(logs.indexOf(r)+1)+' · '+(r.down||'—')+'-'+(r.distance||'—')+' · Sign '+(r.sign||'—'):'新規 · Series '+upcomingSeries();}
-function select(name){if(!ready||busy)return;active=name;renderForm();if(name==='remark')$('remark').focus();else document.activeElement?.blur();}
+function select(name){if(isViewer)return;if(!ready||busy)return;active=name;renderForm();if(name==='remark')$('remark').focus();else document.activeElement?.blur();}
 function renderForm(){
  for(const name of ['down','strSide','sign']){const v=$('value-'+name);v.textContent=draft[name]?(draft[name]+(name==='sign'&&draft.branch?' · '+draft.branch:'')):'—';v.classList.toggle('empty',!draft[name]);const b=document.querySelector('[data-field='+name+']');b.classList.toggle('active',active===name);b.setAttribute('aria-pressed',String(active===name));}
  $('distance').classList.toggle('active',active==='distance');document.querySelectorAll('[data-distance]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.distance===draft.distance)));$('value-distance').textContent=draft.distance||'—';$('value-distance').hidden=!draft.distance||distances.includes(draft.distance);
@@ -121,14 +127,18 @@ function showNote(anchor,row,kind){
 }
 
 function renderLogs(){
+ const opened=isViewer&&noteAnchor?{id:noteAnchor.closest('tr').dataset.id,kind:noteAnchor.dataset.kind,scroll:$('noteContent').scrollTop}:null;
+ const scrollTop=$('tableWrap').scrollTop,follow=isViewer&&!opened&&$('tableWrap').scrollHeight-scrollTop-$('tableWrap').clientHeight<40;
  closeNote();const body=$('logBody');body.replaceChildren();const term=$('search').value.trim().toLowerCase();let shown=0;
- logs.forEach((r,i)=>{if(term&&!Object.values(r).join(' ').toLowerCase().includes(term))return;shown++;const tr=document.createElement('tr');tr.dataset.id=r.id;tr.dataset.ending=r.ending||'';if(i&&logs[i-1].q&&r.q&&logs[i-1].q!==r.q)tr.classList.add('q-change');if(i&&logs[i-1].series&&r.series&&logs[i-1].series!==r.series)tr.classList.add('series-change');tr.tabIndex=0;tr.setAttribute('aria-label','Play '+(i+1)+' を編集');
+ logs.forEach((r,i)=>{if(term&&!Object.values(r).join(' ').toLowerCase().includes(term))return;shown++;const tr=document.createElement('tr');tr.dataset.id=r.id;tr.dataset.ending=r.ending||'';if(i&&logs[i-1].q&&r.q&&logs[i-1].q!==r.q)tr.classList.add('q-change');if(i&&logs[i-1].series&&r.series&&logs[i-1].series!==r.series)tr.classList.add('series-change');tr.tabIndex=0;tr.setAttribute('aria-label','Play '+(i+1)+(isViewer?'':' を編集'));
  cell(tr,r.time,'time-cell');cell(tr,(r.down||'—')+'-'+(r.distance||'—'));cell(tr,r.strSide||'—');const p=cell(tr,'','play-cell');if(r.ending){const tag=document.createElement('span');tag.className='ending-tag';tag.textContent=r.ending;p.append(tag);}const f=document.createElement('small');f.textContent=r.formation||'';p.append(f);const play=document.createElement('strong');play.textContent=r.play||(r.sign?'Sign '+r.sign:'—');p.append(play);
- readableCell(tr,(r.inside||'').trim()?'✓':'','inside',r,'check-cell');readableCell(tr,(r.outside||'').trim()||r.coverage?'✓':'','outside',r,'check-cell');readableCell(tr,r.remark||'','remark',r);tr.addEventListener('click',()=>editRecord(r.id));tr.addEventListener('keydown',e=>{if(e.target.closest('button'))return;if(e.key==='Enter'){e.preventDefault();e.stopPropagation();editRecord(r.id);}});body.append(tr);
+ readableCell(tr,(r.inside||'').trim()?'✓':'','inside',r,'check-cell');readableCell(tr,(r.outside||'').trim()||r.coverage?'✓':'','outside',r,'check-cell');readableCell(tr,r.remark||'','remark',r);if(!isViewer)tr.addEventListener('click',()=>editRecord(r.id));if(!isViewer)tr.addEventListener('keydown',e=>{if(e.target.closest('button'))return;if(e.key==='Enter'){e.preventDefault();e.stopPropagation();editRecord(r.id);}});body.append(tr);
  });if(!shown){const tr=document.createElement('tr');tr.className='empty-row';const td=cell(tr,logs.length?'該当する記録がありません':'記録はありません');td.colSpan=7;body.append(tr);}$('count').textContent=logs.length+' plays'+(term?' / '+shown+' found':'');document.querySelectorAll('.series-controls button').forEach(b=>b.disabled=!ready||busy||!logs.length);
+ if(isViewer){$('tableWrap').scrollTop=follow?$('tableWrap').scrollHeight:scrollTop;if(opened){const row=logs.find(r=>String(r.id)===opened.id),tr=[...body.children].find(el=>el.dataset.id===opened.id),anchor=tr?.querySelector('[data-kind='+opened.kind+']');if(row&&anchor){showNote(anchor,row,opened.kind);$('noteContent').scrollTop=opened.scroll;}}}
+
 }
 function render(){renderForm();renderLogs();}
-function inputKey(key){
+function inputKey(key){if(isViewer)return;
  if(!ready||busy)return;
  if(key==='L'||key==='R'){draft.strSide=key;active='sign';}
  else if(active==='down'&&/^[1-4]$/.test(key))draft.down=key;
@@ -140,12 +150,12 @@ function inputKey(key){
  else if(active==='remark'){const el=$('remark'),start=el.selectionStart,end=el.selectionEnd;draft.remark=draft.remark.slice(0,start)+key+draft.remark.slice(end);renderForm();el.focus();el.setSelectionRange(start+key.length,start+key.length);return;}
  renderForm();
 }
-function backspace(){
+function backspace(){if(isViewer)return;
  if(!ready||busy)return;
  if((active==='sign'||active==='branch')&&draft.branch)draft.branch='';else if(active==='branch'){active='sign';draft.sign=draft.sign.slice(0,-1);}else if(active==='distance')draft.distance='';else if(active==='remark'){const el=$('remark'),s=el.selectionStart,e=el.selectionEnd;const cut=s===e?Math.max(0,s-1):s;draft.remark=draft.remark.slice(0,cut)+draft.remark.slice(e);renderForm();el.focus();el.setSelectionRange(cut,cut);return;}else if(Object.hasOwn(draft,active))draft[active]=draft[active].slice(0,-1);renderForm();
 }
-function enter(){if(!ready||busy)return;if(editing!==null||['sign','remark','branch'].includes(active))saveRecord();else select(order[order.indexOf(active)+1]||'sign');}
-async function saveRecord(){
+function enter(){if(isViewer)return;if(!ready||busy)return;if(editing!==null||['sign','remark','branch'].includes(active))saveRecord();else select(order[order.indexOf(active)+1]||'sign');}
+async function saveRecord(){if(isViewer)return;
  if(!ready||busy)return;const original=logs.find(r=>r.id===editing);if(editing!==null&&!original){storageNotice('編集対象が見つかりません。入力内容を保持しています。');return;}
  const d=details(),lookup=Object.fromEntries(['formation','play','lookupStatus','resolvedSign','parentSign','cwmBranch','protection','lookupSourceSign'].map(k=>[k,d[k]||'']));
  const record=original?{...original,...draft,...lookup,updatedAt:new Date().toISOString()}:{...draft,...lookup,q:quarter,series:upcomingSeries(),time:time(),recordedAt:new Date().toISOString()};
@@ -155,26 +165,26 @@ async function saveRecord(){
  catch(error){recordSaveFailed=true;storageNotice('未保存：保存できませんでした。入力内容は残しています。記録確定を再試行してください。');}
  finally{setBusy(false);}
 }
-function editRecord(id){
+function editRecord(id){if(isViewer)return;
  if(!ready||busy)return;const row=logs.find(r=>r.id===id);if(!row)return;if(recordSaveFailed&&editing!==id){storageNotice(failureNotice());return;}closeNote();if(editing===null)parked={draft:{...draft},active};editing=id;draft=Object.fromEntries(Object.keys(blank()).map(k=>[k,row[k]||'']));active='sign';full=false;$('app').classList.remove('full');$('toggleTable').textContent='表を拡大';showEntry();renderForm();
 }
-function cancelEdit(){if(!ready||busy)return;draft={...blank(),...(parked?.draft||{})};active=parked?.active||'down';editing=null;parked=null;recordSaveFailed=false;storageNotice();showEntry();renderForm();}
+function cancelEdit(){if(isViewer)return;if(!ready||busy)return;draft={...blank(),...(parked?.draft||{})};active=parked?.active||'down';editing=null;parked=null;recordSaveFailed=false;storageNotice();showEntry();renderForm();}
 function showEntry(){pageKind=null;$('observationPage').hidden=true;$('entry').hidden=false;$('log').hidden=false;}
-function openObservation(){if(!ready||busy)return;pageKind='observations';$('entry').hidden=true;$('log').hidden=true;$('observationPage').hidden=false;$('observationTarget').textContent=targetText()+' · DN '+(draft.down||'—')+' / '+(draft.sign||'Sign未入力')+' '+(details().play||'');for(const kind of ['inside','outside'])$(kind+'Text').value=draft[kind];document.querySelectorAll('[data-cover]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cover===draft.coverage)));$('saveObservation').textContent=editing!==null?'このプレーを更新':'このプレーを記録';$('observationSaveHint').textContent='戻ると入力途中の内容を保持';persistState();}
+function openObservation(){if(isViewer)return;if(!ready||busy)return;pageKind='observations';$('entry').hidden=true;$('log').hidden=true;$('observationPage').hidden=false;$('observationTarget').textContent=targetText()+' · DN '+(draft.down||'—')+' / '+(draft.sign||'Sign未入力')+' '+(details().play||'');for(const kind of ['inside','outside'])$(kind+'Text').value=draft[kind];document.querySelectorAll('[data-cover]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cover===draft.coverage)));$('saveObservation').textContent=editing!==null?'このプレーを更新':'このプレーを記録';$('observationSaveHint').textContent='戻ると入力途中の内容を保持';persistState();}
 function returnFromObservation(){showEntry();renderForm();}
-async function endSeries(label){
+async function endSeries(label){if(isViewer)return;
  if(!ready||busy||!logs.length)return;const r=logs.at(-1);if(!confirm('Series '+(r.series||1)+' / Play '+logs.length+'（'+r.time+'）に「'+label+'」を付けます。\n次の新規プレーから次シリーズになります。'))return;
  setBusy(true);await stateWrites;const record={...r,series:r.series||1,ending:label};
  try{await PlayLogStore.update(record,uiState());logs[logs.length-1]=record;render();storageNotice(failureNotice());notify('シリーズ終了：'+label);}catch(error){storageNotice('シリーズ終了を保存できませんでした。元の記録と入力内容は保持しています。再試行してください。');}finally{setBusy(false);}
 }
-async function resetRecords(){
+async function resetRecords(){if(isViewer)return;
  if(!ready||busy)return;if(logs.length&&!confirm('CSVファイルを端末に保存し、内容を確認しましたか？\n確認済みの場合のみ「OK」を押してください。'))return;if(!confirm('すべての記録を削除します。この操作は取り消せません。よろしいですか？'))return;
  setBusy(true);await stateWrites;const next=uiState({draft:blank(),active:'down',editing:null,parked:null,pageKind:null});
  try{await PlayLogStore.clear(next);logs=[];draft=blank();active='down';editing=null;parked=null;recordSaveFailed=false;stateFailure=false;$('search').value='';showEntry();render();storageNotice();notify('すべての記録を削除しました');}catch(error){storageNotice('リセットできませんでした。記録と入力は残しています。再試行してください。');}finally{setBusy(false);}
 }
 function csvEscape(value){const s=String(value??'');return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s;}
-function exportCSV(){if(!ready||busy)return;const columns=['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark','Lookup Status','Resolved Sign','Parent Sign','CWM Branch','Q','Series','Inside','Coverage','Outside','Series End','Protection','Lookup Source Sign'];const rows=logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark,r.lookupStatus||'legacy',r.resolvedSign||'',r.parentSign||'',r.cwmBranch||'',r.q||'',r.series||'',r.inside||'',r.coverage||'',r.outside||'',r.ending||'',r.protection||'',r.lookupSourceSign||'']);const csv='\uFEFF'+[columns,...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
-async function importSigns(file){
+function exportCSV(){if(isViewer)return;if(!ready||busy)return;const columns=['Time','Down','Distance','Str Side','Sign','Formation','Play','Remark','Lookup Status','Resolved Sign','Parent Sign','CWM Branch','Q','Series','Inside','Coverage','Outside','Series End','Protection','Lookup Source Sign'];const rows=logs.map(r=>[r.time,r.down,r.distance,r.strSide,r.sign,r.formation,r.play,r.remark,r.lookupStatus||'legacy',r.resolvedSign||'',r.parentSign||'',r.cwmBranch||'',r.q||'',r.series||'',r.inside||'',r.coverage||'',r.outside||'',r.ending||'',r.protection||'',r.lookupSourceSign||'']);const csv='\uFEFF'+[columns,...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='sideline_log_'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+async function importSigns(file){if(isViewer)return;
  if(!file||!ready||busy)return;setBusy(true);await stateWrites;
  try{const text=new TextDecoder('utf-8',{fatal:true}).decode(await file.arrayBuffer());const validated=SignLookup.parse(text);await PlayLogStore.saveMapping({rows:validated.rows,importedAt:new Date().toISOString()});mapping=validated;renderForm();storageNotice(failureNotice());notify('Sign対応CSVを保存しました（'+validated.rows.length+'件）');}catch(error){storageNotice('CSVを適用できません。既存の対応表は保持しています。 '+error.message+' '+failureNotice());}finally{$('signCsvInput').value='';setBusy(false);}
 }
@@ -199,7 +209,25 @@ document.addEventListener('keydown',e=>{
  if(e.target.closest('button')&&!e.target.closest('.keypad'))return;
  if(e.key==='Enter'){e.preventDefault();enter();}else if(e.key==='Backspace'){e.preventDefault();backspace();}else if(e.key==='Tab'){e.preventDefault();select(order[(order.indexOf(active)+1)%order.length]);}else if(/^[0-9LRlr]$/.test(e.key)){e.preventDefault();inputKey(e.key.toUpperCase());}
 });
-$('clock').textContent=time();setInterval(()=>$('clock').textContent=time(),1000);render();restoreRecords();
+function viewerLoginRequired(message){closeNote();$('viewerLoginMessage').textContent=message;if(!$('viewerLoginDialog').open)$('viewerLoginDialog').showModal();}
+async function showSharingSettings(){
+ $('shareMessage').textContent='';$('sharingUnavailable').hidden=LoggerSharing.configured;$('adminLogin').hidden=!LoggerSharing.configured||LoggerSharing.loggedIn();$('shareSettings').hidden=true;
+ if(!LoggerSharing.configured||!LoggerSharing.loggedIn())return;
+ try{const result=await LoggerSharing.adminStatus(),local=await PlayLogStore.loadSharing();$('shareSettings').hidden=false;$('adminLogin').hidden=true;$('newViewerId').value=result.game?.viewer_login||'';$('shareCurrent').textContent=(result.game?.active?'共有中':'共有停止中')+' · この端末の保存済み記録 '+logs.length+'件';$('takeoverLabel').hidden=!result.game||result.game.writer_id===local.writerId;$('takeover').checked=false;const url=new URL(location.href);url.search='view=1';url.hash='';$('viewerLink').value=url.href;}catch(error){$('adminLogin').hidden=false;$('shareMessage').textContent=error.message;}
+}
+async function sharingAction(form,action){const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await action();}catch(error){$(isViewer?'viewerLoginMessage':'shareMessage').textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}}
+$('sharingBtn').onclick=()=>{$('sharingDialog').showModal();void showSharingSettings();};$('closeSharing').onclick=()=>$('sharingDialog').close();
+$('adminLogin').onsubmit=e=>{e.preventDefault();void sharingAction(e.target,async()=>{await LoggerSharing.loginAdmin($('adminId').value.trim(),$('adminPassword').value);$('adminPassword').value='';await showSharingSettings();void LoggerSharing.flush();});};
+$('viewerSettings').onsubmit=e=>{e.preventDefault();void sharingAction(e.target,async()=>{await LoggerSharing.configure($('newViewerId').value.trim(),$('newViewerPassword').value,$('takeover').checked);$('newViewerPassword').value='';await showSharingSettings();$('shareMessage').textContent='共有設定を保存しました。閲覧者へURL・ID・PWを伝えてください。';});};
+$('stopSharing').onclick=()=>{if(confirm('この試合の閲覧共有を停止しますか？ 端末内の記録は残ります。'))void sharingAction($('shareSettings'),async()=>{await LoggerSharing.stop();await showSharingSettings();});};
+$('adminLogout').onclick=()=>void sharingAction($('shareSettings'),async()=>{await LoggerSharing.logout();await showSharingSettings();});
+$('copyViewerLink').onclick=async()=>{try{await navigator.clipboard.writeText($('viewerLink').value);$('shareMessage').textContent='閲覧用URLをコピーしました。';}catch{$('viewerLink').focus();$('viewerLink').select();$('shareMessage').textContent='URLを選択しました。コピーして共有してください。';}};
+$('viewerLoginDialog').addEventListener('cancel',e=>e.preventDefault());
+$('viewerLogin').onsubmit=e=>{e.preventDefault();void sharingAction(e.target,async()=>{await LoggerSharing.loginViewer($('viewerId').value.trim(),$('viewerPassword').value);if(LoggerSharing.loggedIn()){$('viewerPassword').value='';$('viewerLoginDialog').close();}});};
+$('viewerLogout').onclick=()=>void LoggerSharing.logout();
+$('clock').textContent=time();setInterval(()=>$('clock').textContent=time(),1000);
+if(isViewer){full=true;$('app').classList.add('viewer','full');$('viewerStatus').hidden=false;$('viewerLogout').hidden=false;$('viewerLoginSubmit').disabled=!LoggerSharing.configured;renderLogs();}else{render();void restoreRecords();}
+LoggerSharing.init({onStatus:(message,kind)=>{const el=$(isViewer?'viewerStatus':'sharingBtn');el.textContent=message;el.title=message;el.classList.toggle('sharing-warning',kind==='warning');},onRows:(rows,meta)=>{logs=rows;ready=Boolean(meta);renderLogs();},onLoginRequired:viewerLoginRequired});
 
 </script>
 </body>

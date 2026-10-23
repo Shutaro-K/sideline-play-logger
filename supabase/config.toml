@@ -1,0 +1,3 @@
+[functions.logger-share]
+# Viewer login is public; admin actions verify the user's JWT and allowlist themselves.
+verify_jwt = false
